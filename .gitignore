@@ -1,0 +1,17 @@
+# build output (the zip goes on GitHub Releases)
+dist/
+__pycache__/
+*.pyc
+*.miz
+
+# local campaign / legacy tooling (not part of the public project)
+DAWS_config_CAUC.lua
+build_daws_test.py
+build_daws_demo.py
+daws_demo.lua
+DAWS_demo_overrides.lua
+DAWS_sim_overrides.lua
+DAWS_test_overrides.lua
+tests/daws_sim.lua
+tests/verify_miz.lua
+tests/run_demo.lua
