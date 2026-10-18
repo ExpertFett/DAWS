@@ -9,6 +9,14 @@ C.first_s, C.auto = 1e9, false                    -- tests launch by hand
 if SC == "turnback" then C.personalities = { hothead = { turnback = 1.0, stunts = { 0, 0 } } } end
 M.addTemplate("DAWS_SU27_SUKHUMI", 42.86, 41.13, 21)
 M.addTemplate("DAWS_MIG31_MOZDOK", 43.79, 44.61, 28)
+if SC == "guard" then   -- a stand-in for the DCS-ATC's Guard: records what the probes say
+  GUARD_SAID, GUARD_REG = {}, nil
+  C.voice_lines = { land = "Nyet, {you}." }       -- a mission overriding one line
+  C.personalities = { book = { comply_s = { 900, 900 } } }   -- so the book pilot is still around to be ordered
+  ATC = { Guard = { register = function(f) GUARD_REG = f; return true end,
+                    say = function(u, text, to) GUARD_SAID[#GUARD_SAID + 1] = text; return true end,
+                    words = function(u) return { you = "American aircraft", who = "Soviet Air Force", type = "Su twenty seven" } end } }
+end
 dofile(DIR .. "/DAWS.lua")
 
 local fails = 0
@@ -196,6 +204,58 @@ elseif SC == "mig31" then
   run(4 * 3600)
   check(s.pers == "book", "Foxhound forced by-the-book")
   check(has("|INTERCEPT|") and not has("SHOW_START"), "intercepted, no show")
+elseif SC == "guard" then
+  -- Voices on Guard: the DCS-ATC hands us a fighter's hail and orders; the personality decides.
+  check(GUARD_REG == DAWS.onGuard, "DAWS registered its Guard handler with the ATC")
+  check(DAWS.onGuard(nil) == nil and DAWS.onGuard({ op = "hail" }) == nil, "a call with no aircraft of ours is not answered")
+  local bg = blue(42.30, 41.40)
+  B.react_m = 60000
+  local said = {}
+  local function order(s, op, arg)
+    local r = DAWS.onGuard({ op = op, arg = arg, unit = Group.getByName(s.lead):getUnit(1), flightName = "Camelot 1-1" })
+    said[#said + 1] = r and r.text or "<nil>"
+    return r
+  end
+  -- hothead: answers the hail in character, refuses twice, gives in on the third order
+  local s = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "hothead")
+  local step, t0 = 0, 0
+  run(4 * 3600, function()
+    if s.state == "SHOW" then B.mode = "straight" end
+    if s.state == "STUBBORN" or s.state == "COMPLY" then B.mode = "escort" end
+    if s.intercepted and step == 0 then step, t0 = 1, M.t; order(s, "hail") end
+    if step == 1 and M.t - t0 > 20 then step = 2; order(s, "turn", "270") end
+    if step == 2 and M.t - t0 > 40 then step = 3; order(s, "leave") end
+    if step == 3 and M.t - t0 > 60 then step = 4; order(s, "leave") end
+    if step == 4 and M.t - t0 > 80 then step = 5; order(s, "follow") end
+  end)
+  check(step >= 5, "the fighter got to talk to him (step " .. step .. ")")
+  check((said[1] or ""):find("Keep your distance", 1, true) ~= nil, "hothead answered the hail in character: " .. tostring(said[1]))
+  check(has("|HAILED|" .. s.name .. "|Camelot 1-1"), "hail logged")
+  check((said[2] or ""):find("^Negative") ~= nil and (said[3] or ""):find("^Negative") ~= nil, "hothead refused the first two orders")
+  check((said[4] or ""):find("We are leaving", 1, true) ~= nil, "hothead gave in on the third order: " .. tostring(said[4]))
+  check(has("|ORDERED|" .. s.name .. "|leave|Camelot 1-1|x3"), "orders counted")
+  check(has("|COMPLY|" .. s.name) and has("ordered by Camelot 1-1"), "went home because he was ordered")
+  check((said[5] or ""):find("already leaving", 1, true) ~= nil, "an order after he complied: already leaving")
+  local taunted = false
+  for _, t in ipairs(GUARD_SAID) do if t:find("Back off", 1, true) then taunted = true end end
+  check(taunted, "taunted on Guard, unprompted, when intercepted")
+  check(not has("|VOICE|" .. s.name .. "|leaving_now"), "no second 'turning for home' after the comply line")
+  check(has("|END|" .. s.name), "finished (state " .. tostring(s.state) .. ")")
+  -- by-the-book: complies on the first order; "land" is refused but still counts
+  B.mode = "cap"
+  said = {}
+  local s2 = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "book")
+  step, t0 = 0, 0
+  run(4 * 3600, function()
+    if s2.state == "COMPLY" then B.mode = "escort" end
+    if s2.intercepted and step == 0 then step, t0 = 1, M.t; order(s2, "hail") end
+    if step == 1 and M.t - t0 > 20 then step = 2; order(s2, "land") end
+    if step == 2 and M.t - t0 > 40 then step = 3; order(s2, "turn", "090") end
+  end)
+  check((said[1] or ""):find("routine patrol", 1, true) ~= nil, "book answered the hail: " .. tostring(said[1]))
+  check(said[2] == "Nyet, American aircraft.", "a mission's own line for 'land' was used: " .. tostring(said[2]))
+  check((said[3] or ""):find("turning for home", 1, true) ~= nil, "book turned for home on the first real order: " .. tostring(said[3]))
+  check(has("|COMPLY|" .. s2.name) and has("|END|" .. s2.name), "book complied and finished")
 end
 
 for _, l in ipairs(M.logs) do if l:find("ERR", 1, true) then print("  " .. l); fails = fails + 1 end end

@@ -71,6 +71,15 @@ DAWS_CONFIG = {
   -- max_turn_dps = 9,             -- target turning harder = pause, move out wide
   -- show_border_nm = 1,           -- no shows this close to a border
   -- formation = "steer",          -- "steer" (any target) or "follow" (DCS Follow task, same coalition only)
+
+  -- ------------------------------------------------------ voices (needs DCS-ATC)
+  -- voice = true,                 -- with the DCS-ATC script in the mission the probes answer on Guard 243.0
+  -- voice_order_credit_s = 30,    -- each order to a stubborn pilot counts this much toward walking him out
+  -- voice_lines = {               -- override any line: a string, a per-pilot table, a list, or false (silence)
+  --   land = "Nyet, {you}.",      -- {you} {who} {type} = "American aircraft", "Soviet Air Force", "Su twenty seven"
+  -- },
+  -- Keys: hail hail_again refuse comply follow follow_refuse land leaving leaving_now taunt show fuel_dump fired_on
+  -- obeys (under personalities): orders on Guard before he turns for home - book 1, showboat 2, hothead 3, tester 1
   --
   -- Your own pass (offsets from the target in metres: { ahead, up, right }, written for the right side;
   -- the first string is the call when the step marked say = true is reached). Validated against min_sep_m.

@@ -1,6 +1,6 @@
 # DAWS — Dynamic Air Warfare System
 
-**v1.0.0-beta** · DCS World mission script · standalone (no MOOSE, no MIST) · multiplayer / dedicated-server safe
+**v1.1.0-beta** · DCS World mission script · standalone (no MOOSE, no MIST) · multiplayer / dedicated-server safe
 
 DAWS adds peacetime and crisis air activity to DCS missions. AI fighters launch from their own fields and **probe your border**. They fly along it, never cross it, and time how long you take to respond. When you intercept, each one reacts according to the pilot DAWS drew:
 
@@ -14,6 +14,8 @@ DAWS adds peacetime and crisis air activity to DCS missions. AI fighters launch 
 If nobody answers a probe, it comes closer every lap. The lane **remembers** that, so the next probe there starts deeper. A quick intercept and escort pushes it back out.
 
 Nobody shoots. The probing side is held to weapons hold. Close passes keep at least 100 m from you, and anything closer than 50 m aborts the show.
+
+**They talk back.** With [DCS-ATC](https://github.com/ExpertFett/DCS-ATC) in the mission, hail a probe on Guard and he answers in Russian-accented English through his own radio. Tell him to leave, and his pilot decides how many times you have to say it.
 
 **Download:** grab the zip from [Releases](https://github.com/ExpertFett/DAWS/releases). It has the script, the border data, the manual, and a Starter and a Demo mission.
 

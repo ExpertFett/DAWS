@@ -1,5 +1,12 @@
 # DAWS changelog
 
+## 1.1.0-beta (2026-10-18): voices on Guard
+
+- **The probes talk, with [DCS-ATC](https://github.com/ExpertFett/DCS-ATC) in the mission.** Hail one on Guard 243.0 and he answers in the ATC's Russian voice through his own radio. Orders ("turn left heading...", "leave the area", "follow me", "land") count by personality: book and tester comply at the first, showboat at the second, hothead at the third (`obeys`). Hotheads taunt when identified, showboats announce their passes, the fuel dump comes with a line, a shot at him "will be reported". Orders to a stubborn hothead count toward walking him out (`voice_order_credit_s`).
+- New config: `voice`, `voice_order_credit_s`, `voice_lines` (override any line, per pilot); `obeys` on personalities.
+- New log events `HAILED`, `ORDERED`, `VOICE`; new API `DAWS.onGuard(ev)`, what the ATC calls. Nothing changes without the ATC.
+- Offline scenario `guard` covers the handshake, both kinds of pilot and a mission's own line.
+
 ## 1.0.0-beta (2026-10-17): first public build
 
 **Setup without Lua**

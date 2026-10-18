@@ -1,4 +1,4 @@
-# DAWS Manual — v1.0.0-beta
+# DAWS Manual — v1.1.0-beta
 
 1. [How a probe plays out](#1-how-a-probe-plays-out)
 2. [Installing](#2-installing)
@@ -138,6 +138,7 @@ A probe with no fixed pilot draws one from `weights` (default book 45, showboat 
 | `escort_need_s` (after his show) | 0 | 0 | 150 | 0 |
 | `turnback` (chance) | 0 | 0.1 | 0.35 | 1.0 |
 | `comply_s` (no-show pilots) | 20–60 | 10–30 | 0 | 10–20 |
+| `obeys` (orders on Guard before he goes home, section 11) | 1 | 2 | 3 | 1 |
 
 Changing one, or adding your own, takes a config file (section 7):
 
@@ -202,6 +203,7 @@ Optional. Copy **`DAWS_config_template.lua`**, uncomment what you want to change
 | `msg_all` | false | Calls to everyone (spectator missions). |
 | `awacs` | `"OVERLORD"` | Who makes the calls. |
 | `roe` | 4 | Probing side's ROE: 4 = weapons hold, 3 = return fire. |
+| `voice`, `voice_order_credit_s`, `voice_lines` | true, 30, — | Section 11 (needs DCS-ATC in the mission). |
 
 When a config gives `templates` or `lanes`, those are used **instead of** discovery for that part. Borders always add up.
 
@@ -216,6 +218,7 @@ DAWS.setPersonality("showboat")            -- the next automatic launch
 DAWS.addPersonality("cowboy", { ... })
 DAWS.borderNm(point)                       -- NM from the nearest border (negative = inside)
 DAWS.onEvent = function(kind, name, ...) end   -- every log event below
+DAWS.onGuard(ev)                           -- what DCS-ATC calls with a fighter's hail or order on Guard (section 11)
 DAWS.sorties, DAWS.lanes, DAWS.templates, DAWS.personalities, DAWS.stunts   -- live tables (read them)
 ```
 
@@ -233,7 +236,7 @@ A sortie (`DAWS.sorties[i]`) has `name`, `lane.name`, `pers`, `state`, `tag`, `t
 
 Every event goes to `Saved Games\DCS\Logs\dcs.log` as `DAWS|<mission seconds>|<EVENT>|...`. The events are:
 
-`LOADED`, `BORDERS`, `LAUNCH`, `AIRBORNE`, `PROBE`, `RESPONSE`, `UNANSWERED`, `INTERCEPT`, `SHOW_START`, `SHOW_STEP`, `FUEL_DUMP`, `SHOW_PAUSE`, `SHOW_RESUME`, `SHOW_ABORT`, `SHOW_END`, `COMPLY`, `RESUME_PROBE`, `TURNBACK`, `ESCORTED_OUT`, `WITHDREW`, `FIRED_ON`, `LEAD_LOST`, `LOST`, `END`, `FLAG_LAUNCH`, `SPAWN_COUNTRY`, `PAUSE`.
+`LOADED`, `BORDERS`, `LAUNCH`, `AIRBORNE`, `PROBE`, `RESPONSE`, `UNANSWERED`, `INTERCEPT`, `SHOW_START`, `SHOW_STEP`, `FUEL_DUMP`, `SHOW_PAUSE`, `SHOW_RESUME`, `SHOW_ABORT`, `SHOW_END`, `COMPLY`, `RESUME_PROBE`, `TURNBACK`, `ESCORTED_OUT`, `WITHDREW`, `FIRED_ON`, `LEAD_LOST`, `LOST`, `END`, `FLAG_LAUNCH`, `SPAWN_COUNTRY`, `PAUSE`, and with DCS-ATC `HAILED`, `ORDERED`, `VOICE` (section 11).
 
 | You see | It means |
 |---|---|
@@ -245,3 +248,36 @@ Every event goes to `Saved Games\DCS\Logs\dcs.log` as `DAWS|<mission seconds>|<E
 | `SHOW_STEP\|…\|timeout` | The bandit didn't reach that slot in 45 s. A few are normal. If every step times out, report it with the log. |
 | `STUNT_REJECTED` | One of your passes comes inside `min_sep_m`. |
 | Nothing at all | Is DAWS loaded **last**? Search the log for `[DAWS] loaded` and `Mission script error`. |
+
+## 11. Voices on Guard (with DCS-ATC)
+
+With the [DCS-ATC](https://github.com/ExpertFett/DCS-ATC) script in the same mission (and its SRS listener running on the server), the probes talk. The listener hears a fighter on Guard, 243.0, and the ATC hands the call to DAWS; the probe answers in the ATC's Russian voice, through his own radio, and his personality decides what he does. The ATC tasks nothing of DAWS's and DAWS tasks nothing of the ATC's: the pilot answers, DAWS flies him. Without the ATC in the mission nothing changes.
+
+Inside 5 NM of him, on 243.0:
+
+| You say | What happens |
+|---|---|
+| "Soviet fighter, this is the United States Navy, identify yourself" / "state your intentions" | He answers in character. Book: "...on a routine patrol in international airspace. State your intentions." Hothead: "You are very close. Keep your distance." Showboat: "We see you. Nice aircraft." |
+| "Turn left heading two seven zero", "reverse course", "leave the area immediately" | An order. Book and tester turn for home at the first, showboat at the second, hothead at the third (`obeys`). Until then he refuses, in character. |
+| "Follow me" | An order. Book, tester and showboat follow you out when they comply; the hothead never follows ("We do not follow American aircraft"), but it still counts. |
+| "Land immediately" | Always refused. Still counts. |
+
+He also talks unprompted: the hothead tells you to back off when you identify him, the showboat says "watch this" before his passes, "Enjoy the fuel" comes with the fuel dump, a shot at him gets "This will be reported", and a pilot who was talking to you says "we are turning for home now" when he goes.
+
+Orders to a stubborn hothead count toward walking him out: each one is worth `voice_order_credit_s` (30 s) of escort.
+
+```lua
+DAWS_CONFIG = {
+  voice = true,                      -- false: quiet even with the ATC present
+  voice_order_credit_s = 30,
+  voice_lines = {                    -- override any line: a string, a per-pilot table, a list (picked by how
+    land = "Nyet, {you}.",           -- often he has been told) or false for silence. {you} {who} {type} are
+    hail = { hothead = "{you}, {who} {type}. Go away." },   -- filled in: "American aircraft", "Soviet Air Force",
+  },                                 -- "Su twenty seven"
+  personalities = { hothead = { obeys = 5 } },
+}
+```
+
+Line keys: `hail`, `hail_again`, `refuse`, `comply`, `follow`, `follow_refuse`, `land`, `leaving`, `leaving_now`, `taunt`, `show`, `fuel_dump`, `fired_on`. A pilot without a line of his own uses the by-the-book one; `taunt` and `show` have none, so only the hothead and the showboat say them.
+
+Log events: `HAILED|<probe>|<fighter>`, `ORDERED|<probe>|<order>|<fighter>|x<n>`, `VOICE|<probe>|<line key>|<text>`, and `VOICE|on: the probes answer on Guard through the DCS-ATC` at load when the handshake worked. Load order doesn't matter: whichever script loads second finds the other.

@@ -28,7 +28,7 @@
 -- Log lines (dcs.log): DAWS|<mission time>|<EVENT>|...
 -- ============================================================================
 env.info("[DAWS] script start")
-local VERSION = "1.0.0-beta"
+local VERSION = "1.1.0-beta"
 DAWS_CONFIG = DAWS_CONFIG or {}
 local C = DAWS_CONFIG
 
@@ -47,6 +47,9 @@ local DEFAULTS = {
   show_border_nm = 1, join_timeout_s = 150, step_timeout_s = 45, show_max_s = 1200,
   quick_response_s = 300, max_sortie_s = 5400, roe = 4, turnback_after_s = 90,
   formation = "steer",               -- "steer" (works on any target) or "follow" (DCS Follow task)
+  -- Voices on Guard: with the DCS-ATC script in the mission the probes answer a fighter that
+  -- hails them on 243.0 and take his orders by personality (see "voices" below).
+  voice = true, voice_order_credit_s = 30, voice_lines = {},
   template_prefix = "DAWS", lane_prefix = "DAWS LANE", border_prefix = "DAWS BORDER",
   weights = { book = 45, showboat = 30, hothead = 15, tester = 10 },
   -- Mission Editor flags (named flags; false = off). DAWS counts these up when they happen:
@@ -210,6 +213,70 @@ local function heading(u)
 end
 local function agl(p) return p.y - land.getHeight({ x = p.x, y = p.z }) end
 local function who(u) return safe(function() return u:getPlayerName() end, nil) or safe(function() return u:getName() end, "?") end
+
+-- ============================================================ voices (DCS-ATC on Guard)
+-- With the DCS-ATC script in the mission (ATC.Guard), a probe answers a fighter that hails
+-- it on Guard 243.0 in the ATC's Russian voice, through its own radio, and takes orders by
+-- personality. These are the lines; cfg.voice_lines overrides any key (a string, a
+-- per-personality table, a list to pick from by how often he has been told, or false).
+-- {you} {who} {type} are filled in: "American aircraft", "Soviet Air Force", "Su twenty seven".
+local LINES = {
+  hail = { book = "{you}, this is {who} {type} on a routine patrol in international airspace. State your intentions.",
+           tester = "{you}, this is {who} {type} on a routine patrol in international airspace. State your intentions.",
+           showboat = "{you}, {who} {type}. We see you. Nice aircraft.",
+           hothead = "{you}, this is {who} {type}. You are very close. Keep your distance." },
+  hail_again = "{you}, {who} {type}, go ahead.",
+  refuse = { book = "Negative, {you}. We are in international airspace and we continue on our route.",
+             showboat = "Negative, {you}. One moment, we are not finished here.",
+             hothead = { "Negative, {you}. International airspace. We go where we like.",
+                         "Negative, {you}. Your orders mean nothing here." } },
+  comply = { book = "Understood, {you}. We are turning for home.",
+             tester = "Understood, {you}. We are turning for home.",
+             showboat = "Very well, {you}. It was a pleasure. We are leaving.",
+             hothead = "Very well, {you}. We are leaving. Tell your admiral the Soviet Air Force sends regards." },
+  follow = { book = "Understood, {you}. We will follow you out.",
+             tester = "Understood, {you}. We will follow you out.",
+             showboat = "Very well, {you}. Lead on, we will follow you out.",
+             hothead = false },                                  -- false: he does not do follow (see follow_refuse)
+  follow_refuse = "Negative, {you}. We do not follow American aircraft.",
+  land = "Negative, {you}. We will not land. We are returning to our base.",
+  leaving = "{you}, we are already leaving your area.",
+  leaving_now = "{you}, we are turning for home now.",
+  taunt = { hothead = "{you}, you are too close. Back off." },
+  show = { showboat = "{you}, watch this." },
+  fuel_dump = "Enjoy the fuel, {you}.",
+  fired_on = "{you}, you fired on us! We are breaking off. This will be reported.",
+}
+local function lineFor(key, pers, n)
+  local v = C.voice_lines and C.voice_lines[key]
+  if v == nil then v = LINES[key] end
+  if type(v) == "table" then
+    if v[pers] ~= nil then v = v[pers]
+    elseif #v == 0 then v = v.book                 -- a personality without its own line uses the by-the-book one
+    end
+  end
+  if type(v) == "table" then
+    if #v == 0 then return nil end
+    v = v[n and math.min(n, #v) or math.random(#v)]
+  end
+  return type(v) == "string" and v or nil
+end
+local function voiceWords(s)
+  local u = lead(s.lead)
+  local w = (u and type(ATC) == "table" and ATC.Guard and ATC.Guard.words) and safe(function() return ATC.Guard.words(u) end, nil)
+  return w or { you = "American aircraft", who = "Soviet Air Force", type = "aircraft" }, u
+end
+local function fill(line, w) return (line:gsub("{(%w+)}", function(k) return w[k] or k end)) end
+local function voice(s, key, n)              -- the probe says something on Guard, unprompted
+  if not (C.voice and type(ATC) == "table" and ATC.Guard and ATC.Guard.say) then return nil end
+  local w, u = voiceWords(s)
+  local line = lineFor(key, s.pers, n)
+  if not (line and u) then return nil end
+  local text = fill(line, w)
+  pcall(ATC.Guard.say, u, text, s.hailedBy)
+  log("VOICE", s.name, key, text)
+  return text
+end
 local function foeAir()
   local out = {}
   for _, g in pairs(coalition.getGroups(FOE, Group.Category.AIRPLANE) or {}) do
@@ -466,16 +533,21 @@ DAWS.stunts = STUNTS
 -- comply_s     {min,max} seconds after the ID before he turns for home (no-show pilots)
 -- escort_need_s after his show: seconds of escort before he gives up (0 = leaves at once)
 -- turnback     chance he turns back toward the border if nobody follows him out
+-- obeys        how many orders on Guard (through the DCS-ATC) it takes before he turns for home
 local PERS = {
-  book = { label = "by-the-book", depth = 0, stunts = { 0, 0 }, comply_s = { 20, 60 }, escort_need_s = 0, turnback = 0, pool = {} },
+  book = { label = "by-the-book", depth = 0, stunts = { 0, 0 }, comply_s = { 20, 60 }, escort_need_s = 0, turnback = 0, pool = {},
+           obeys = 1 },
   showboat = { label = "showboat", depth = 1, stunts = { 1, 2 }, comply_s = { 10, 30 }, escort_need_s = 0, turnback = 0.1,
-               pool = { "wing_look", "nose_cross", "belly_check", "fuel_dump" } },
+               pool = { "wing_look", "nose_cross", "belly_check", "fuel_dump" }, obeys = 2 },
   hothead = { label = "hothead", depth = 2, stunts = { 2, 4 }, comply_s = { 0, 0 }, escort_need_s = 150, turnback = 0.35,
-              opens_with = "fuel_dump", pool = { "close_wing", "nose_cross", "fuel_dump", "belly_check", "canopy_pass", "sit_six" } },
-  tester = { label = "tester", depth = 1, stunts = { 0, 0 }, comply_s = { 10, 20 }, escort_need_s = 0, turnback = 1.0, pool = {} },
+              opens_with = "fuel_dump", pool = { "close_wing", "nose_cross", "fuel_dump", "belly_check", "canopy_pass", "sit_six" },
+              obeys = 3 },
+  tester = { label = "tester", depth = 1, stunts = { 0, 0 }, comply_s = { 10, 20 }, escort_need_s = 0, turnback = 1.0, pool = {},
+             obeys = 1 },
 }
 for k, v in pairs(C.personalities or {}) do
-  PERS[k] = PERS[k] or { label = k, depth = 0, stunts = { 0, 0 }, comply_s = { 20, 60 }, escort_need_s = 0, turnback = 0, pool = {} }
+  PERS[k] = PERS[k] or { label = k, depth = 0, stunts = { 0, 0 }, comply_s = { 20, 60 }, escort_need_s = 0, turnback = 0, pool = {},
+                         obeys = 1 }
   for kk, vv in pairs(v) do PERS[k][kk] = vv end
 end
 DAWS.personalities = PERS
@@ -695,6 +767,7 @@ local function goHome(s, why, fast)
   setRoute(grp(s.lead), pts)
   wingRejoin(s)
   log("COMPLY", s.name, why or "-")
+  if s.hails and not s.saidLeaving then s.saidLeaving = true; voice(s, "leaving_now") end   -- he was talking to someone
 end
 
 local function newSortie(lane, tdef, pers, tag)
@@ -786,7 +859,7 @@ local function pushStep(s)
     step = sh.steps[sh.i]
   end
   if sh.smoke and not step.smoke then smoke(g, false); sh.smoke = false end
-  if step.smoke then smoke(g, true); sh.smoke = true; log("FUEL_DUMP", s.name, sh.targetBy) end
+  if step.smoke then smoke(g, true); sh.smoke = true; log("FUEL_DUMP", s.name, sh.targetBy); voice(s, "fuel_dump") end
   sh.at, sh.tStep, sh.arrived, sh.best = step.pos, timer.getTime(), nil, 1e9
   if C.formation == "follow" then follow(g, Group.getByName(sh.target), step.pos) end
 end
@@ -800,6 +873,7 @@ local function startShow(s, tu)
   s.state, s.showDone = "SHOW", true
   log("SHOW_START", s.name, s.show.targetBy, #s.show.steps - 2 .. " steps")
   sayGroup(tg, string.format("%s: the %s is coming over to join on you. Let him look. Weapons tight.", C.awacs, s.tdef.label), 10)
+  voice(s, "show")
   pushStep(s)
   if C.formation == "follow" and grp(s.wing) then follow(grp(s.wing), tg, COVER) end
 end
@@ -968,6 +1042,7 @@ local function tickSortie(s, now, foes, dt)
       local i = s.intercepted
       log("INTERCEPT", s.name, i.by, mmss(i.t), string.format("%.0f", i.nm), s.pers)
       sayAll(string.format("%s: %s intercepted and identified by %s, %.0f NM off the border.", C.awacs, s.label, i.by, i.nm), 12)
+      voice(s, "taunt")
       local n = rndi(s.P.stunts or 0)
       if s.showDone then
         if (s.P.escort_need_s or 0) > 0 then s.state, s.tStub, s.escortS = "STUBBORN", now, 0
@@ -1146,6 +1221,7 @@ function H:onEvent(e)
       s.firedOn = true
       CUR = s
       log("FIRED_ON", s.name, e.initiator and who(e.initiator) or "?")
+      voice(s, "fired_on")
       if s.state ~= "COMPLY" then
         if s.state == "SHOW" then endShow(s, "fired on") else goHome(s, "fired on", true) end
       end
@@ -1215,6 +1291,57 @@ if C.menu then
     DAWS.pause(not DAWS.paused)
     trigger.action.outTextForCoalition(FOE, "DAWS: auto launches " .. (DAWS.paused and "PAUSED" or "RESUMED"), 6)
   end)
+end
+
+-- ======================================== orders on Guard (through the DCS-ATC)
+-- The ATC calls this when a fighter hails or orders one of our probes on Guard 243.0:
+-- ev = { op = "hail" | "turn" | "leave" | "follow" | "land", arg, unit, name, flightName, ... }.
+-- nil = not one of ours (the ATC answers itself); { text = ... } = what the pilot says
+-- (the ATC speaks it through the probe's radio, and tasks nothing - his personality
+-- decides, DAWS flies him). Talking to a stubborn pilot counts toward walking him out.
+function DAWS.onGuard(ev)
+  local s = ev and ev.unit and sortieOf(ev.unit)
+  if not s or s.state == "DONE" then return nil end
+  CUR = s
+  local w = voiceWords(s)
+  local by = ev.flightName or "?"
+  local reply
+  if ev.op == "hail" then
+    s.hails = (s.hails or 0) + 1
+    s.hailedBy = by
+    reply = lineFor(s.hails == 1 and "hail" or "hail_again", s.pers)
+    log("HAILED", s.name, by)
+  else
+    s.orders = (s.orders or 0) + 1
+    s.hails = s.hails or 0
+    s.hailedBy = s.hailedBy or by
+    log("ORDERED", s.name, ev.op, by, "x" .. s.orders)
+    local need = s.P.obeys or 1
+    if s.state == "COMPLY" or s.state == "RTB" then
+      reply = lineFor("leaving", s.pers)
+    elseif ev.op == "land" then
+      reply = lineFor("land", s.pers)                       -- nobody lands; it still counts as an order
+    elseif s.orders < need then
+      if s.state == "STUBBORN" then s.escortS = s.escortS + (C.voice_order_credit_s or 30) end   -- talking to him counts
+      if ev.op == "follow" and lineFor("follow", s.pers) == nil then reply = lineFor("follow_refuse", s.pers)
+      else reply = lineFor("refuse", s.pers, s.orders) end
+    else
+      s.saidLeaving = true
+      reply = (ev.op == "follow" and lineFor("follow", s.pers)) or lineFor("comply", s.pers)
+      if s.state == "SHOW" then endShow(s, "ordered by " .. by) else goHome(s, "ordered by " .. by) end
+      sayAll(string.format("%s: the %s is complying with %s and turning for home. Shadow him out to %d NM.",
+        C.awacs, s.label, by, C.release_nm), 12)
+    end
+  end
+  CUR = nil
+  if not reply then return { text = nil } end
+  local text = fill(reply, w)
+  log("VOICE", s.name, ev.op, text)
+  return { text = text }
+end
+if C.voice and type(ATC) == "table" and ATC.Guard and ATC.Guard.register then
+  ATC.Guard.register(DAWS.onGuard)
+  log("VOICE", "on: the probes answer on Guard through the DCS-ATC")
 end
 
 if #POLYS == 0 then log("WARN", "no borders defined - probes have nothing to stay out of") end

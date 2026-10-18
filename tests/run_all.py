@@ -44,7 +44,7 @@ def extract(miz, tmp):
 def main():
     bad = []
     with tempfile.TemporaryDirectory() as tmp:
-        for sc in ("unanswered", "book_escort", "hothead", "abort", "hardturn", "turnback", "mig31", "airstart"):
+        for sc in ("unanswered", "book_escort", "hothead", "abort", "hardturn", "turnback", "mig31", "airstart", "guard"):
             ok = 0
             for _ in range(RUNS):
                 out = lua(HERE + "/run_tests.lua", ROOT, sc)
