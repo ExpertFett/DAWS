@@ -51,6 +51,7 @@ def main():
         "DAWS_borders_caucasus.lua": "DAWS_borders_caucasus.lua",
         "DAWS_config_template.lua": "DAWS_config_template.lua",
         "README.md": "README.md",
+        "DAWS_User_Guide.pdf": "docs/DAWS_User_Guide.pdf",
         "MANUAL.md": "docs/MANUAL.md",
         "CHANGELOG.md": "docs/CHANGELOG.md",
         "LICENSE.txt": "LICENSE",

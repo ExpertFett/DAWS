@@ -33,6 +33,7 @@ Open **`missions/DAWS_Starter_Caucasus_v1.0.miz`** in the Mission Editor to see 
 
 | File | What |
 |---|---|
+| `DAWS_User_Guide.pdf` | **Start here.** Eight pages covering setup, choosing pilots, flags, recipes and troubleshooting. Also in this repo: [docs/DAWS_User_Guide.pdf](docs/DAWS_User_Guide.pdf). |
 | `DAWS.lua` | The script. Load it last. |
 | `DAWS_borders_caucasus.lua` | Real Caucasus borders: Georgia (incl. Abkhazia and South Ossetia) and its 12 NM sea, Turkey and its 12 NM sea, Armenia, Azerbaijan. Source: Natural Earth. |
 | `DAWS_config_template.lua` | Every option, commented. Optional. |
