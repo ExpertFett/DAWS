@@ -26,7 +26,17 @@ def sha(b):
     return hashlib.sha256(b).hexdigest()[:16]
 
 
+SHIPPED = ["DAWS.lua", "DAWS_borders_caucasus.lua", "DAWS_config_template.lua", "DAWS_config_Caucasus.lua",
+           "README.md", "LICENSE", "docs/MANUAL.md", "docs/CHANGELOG.md", "docs/DAWS_User_Guide.pdf"]
+
+
 def main():
+    # Ship committed files only: on 2026-10-18 another session was mid-edit on DAWS.lua while
+    # this ran, and a half-written engine went into the zip under the old version number.
+    if "--dirty" not in sys.argv:
+        r = subprocess.run(["git", "status", "--porcelain", "--"] + SHIPPED, cwd=ROOT, capture_output=True, text=True)
+        if r.returncode == 0 and r.stdout.strip():
+            sys.exit("uncommitted changes in shipped files - commit them (or --dirty to package anyway):\n" + r.stdout)
     engine = open(os.path.join(ROOT, "DAWS.lua"), "rb").read()
     ver = re.search(rb'local VERSION = "([^"]+)"', engine).group(1).decode()
     name = "DAWS_v" + ver
@@ -80,6 +90,10 @@ def main():
         names = z.namelist()
     if bad or any("\\" in n for n in names):
         sys.exit("zip check failed: %s" % (bad or "backslash entry"))
+    with zipfile.ZipFile(zpath) as z:                # the engine in the zip = the one tested + matched above
+        if z.read(name + "/DAWS.lua") != engine:
+            os.remove(zpath)
+            sys.exit("DAWS.lua changed while packaging - zip deleted, run again")
     os.makedirs(LIBRARY, exist_ok=True)
     shutil.copy2(zpath, os.path.join(LIBRARY, name + ".zip"))
     print("wrote", zpath, "(%d files, %.0f KB)" % (len(names), os.path.getsize(zpath) / 1024))
