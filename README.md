@@ -29,7 +29,7 @@ Nobody shoots. The probing side is held to weapons hold. Close passes keep at le
 4. Place **lanes**: late-activated groups named `DAWG LANE <NAME>`. Their waypoints are the probe leg, drawn **parallel to the border and outside it**. Add `#land` if the lane runs over land.
 5. Fly. The first probe comes at about 10 minutes, then one every 15–25.
 
-Open **`missions/DAWG_Starter_Caucasus_v1.0.miz`** in the Mission Editor to see all of this set up. To watch everything without flying, spectate **`missions/DAWG_Demo_Caucasus_v1.3.miz`**: five intercepts with five different pilots, all AI.
+Open **`missions/DAWG_Starter_Caucasus_v1.2.miz`** in the Mission Editor to see all of this set up. To watch everything without flying, spectate **`missions/DAWG_Demo_Caucasus_v1.4.miz`**: five intercepts with five different pilots, all AI.
 
 ## In the release zip
 

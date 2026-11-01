@@ -18,6 +18,10 @@ from reportlab.graphics.shapes import Drawing, Line, Polygon, Rect, String
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "docs", "DAWG_User_Guide.pdf")
+# the bundled missions, straight from the packager (so the guide never names a stale build)
+BUNDLE = re.search(r"BUNDLE_MISSIONS = \[([^\]]+)\]", open(os.path.join(ROOT, "tools", "package.py"), encoding="utf-8").read()).group(1)
+STARTER = re.search(r'"([^"]*Starter[^"]*)"', BUNDLE).group(1)
+DEMO = re.search(r'"([^"]*Demo[^"]*)"', BUNDLE).group(1)
 VERSION = re.search(r'local VERSION = "([^"]+)"', open(os.path.join(ROOT, "DAWG.lua"), encoding="utf-8").read()).group(1)
 
 FONTS = r"C:\Windows\Fonts"
@@ -174,24 +178,25 @@ def build():
     W = 6.9 * inch
 
     # ------------------------------------------------------------------ cover
-    s += [Spacer(1, 1.3 * inch), P("DAWG", "title"), Spacer(1, 4), P("Dynamic Air Warfare Group", "subtitle"),
-          Spacer(1, 6), P("User Guide \u00b7 v%s" % VERSION, "subtitle"), Spacer(1, 0.45 * inch)]
+    s += [Spacer(1, 0.85 * inch), P("DAWG", "title"), Spacer(1, 4), P("Dynamic Air Warfare Group", "subtitle"),
+          Spacer(1, 6), P("User Guide \u00b7 v%s" % VERSION, "subtitle"), Spacer(1, 0.35 * inch)]
     s.append(callout("DAWG is a mission script for DCS World. Fighters launch from their own fields and <b>probe your border</b>: "
                      "they fly along it, never cross it, and time how long you take to respond. When you intercept them, each one "
                      "reacts according to the <b>pilot</b> it drew. One complies and goes home. Another dumps fuel across your "
                      "windscreen and won't leave until you walk him out.", NAVY))
-    s += [Spacer(1, 0.3 * inch), flow(), Spacer(1, 0.3 * inch)]
+    s += [Spacer(1, 0.22 * inch), flow(), Spacer(1, 0.22 * inch)]
     s.append(table([
         ["What you get", ""],
         ["No Lua needed", "Set everything up in the Mission Editor with group names and flags."],
         ["Four pilot types", "By-the-book, showboat, hothead, tester. Pick them, or let DAWG pick at random."],
         ["Real borders", "The real Caucasus borders are built in. On other maps, draw your own zones."],
         ["Safe by design", "Never crosses a border, never shoots. Close passes keep at least 100 m and abort inside 50 m."],
+        ["They talk back", "With DCS-ATC in the mission, hail them on Guard and give orders; each pilot answers in character."],
         ["Multiplayer", "Runs on the server. Players need nothing installed."],
     ], [1.6 * inch, W - 1.6 * inch]))
     s.append(Spacer(1, 0.2 * inch))
     s.append(P("Contents: 1 The pilots \u00b7 2 Setup in five steps \u00b7 3 Choosing how pilots act \u00b7 4 Flags \u00b7 "
-               "5 Flying against it \u00b7 6 Recipes \u00b7 7 The config file \u00b7 8 Troubleshooting", "small"))
+               "5 Flying against it \u00b7 6 Talking to them on Guard \u00b7 7 Recipes \u00b7 8 The config file \u00b7 9 Troubleshooting", "small"))
     s.append(PageBreak())
 
     # ------------------------------------------------------------- 1 pilots
@@ -234,7 +239,7 @@ def build():
     # --------------------------------------------------------------- 2 setup
     s.append(P("2  Setup in five steps", "h1"))
     s.append(P("Everything below is done in the Mission Editor. The fastest way to learn it is to open "
-               "<b>missions/DAWG_Starter_Caucasus_v1.0.miz</b> from the zip, where every step is already done."))
+               "<b>missions/" + STARTER + "</b> from the zip, where every step is already done."))
 
     s.append(P("Step 1 \u2014 Load the script", "h2"))
     s.append(table([
@@ -375,8 +380,50 @@ def build():
                      "or they'll shoot the probes down."))
     s.append(Spacer(1, 12))
 
-    # --------------------------------------------------------------- 6 recipes
-    s.append(P("6  Recipes: \u201cI want\u2026\u201d", "h1"))
+    # ---------------------------------------------------------- 6 guard voices
+    s.append(Spacer(1, 6))
+    s.append(P("6  Talking to them on Guard", "h1"))
+    s.append(P("With the <b>DCS-ATC</b> script in the same mission (github.com/ExpertFett/DCS-ATC, with its SRS voice listener "
+               "running on the server), the probes <b>talk back</b>. Call them on Guard, <b>243.0</b>, and the probe you're intercepting "
+               "answers in a Russian voice, in character, and his pilot type decides whether he does what you say. "
+               "DCS-ATC only does the talking; DAWG still flies him. Without DCS-ATC in the mission, nothing changes."))
+    s.append(P("What to say (within 5 NM of him, on 243.0)", "h2"))
+    s.append(table([
+        ["You say", "What happens"],
+        ["\u201cSoviet fighter, this is the United States Navy, identify yourself\u201d<br/>or \u201c\u2026state your intentions\u201d",
+         "He answers in character (below). Nothing else changes; it's a hail, not an order."],
+        ["\u201cTurn left heading two seven zero\u201d<br/>\u201cReverse course\u201d \u00b7 \u201cLeave the area immediately\u201d",
+         "An <b>order</b>. He refuses until he's had enough orders for his pilot type, then turns for home."],
+        ["\u201cFollow me\u201d", "An order. When he complies he follows you out, except the hothead, who never follows "
+                               "(\u201cWe do not follow American aircraft\u201d) but still goes home once he's had enough."],
+        ["\u201cLand immediately\u201d", "Always refused. It still counts as an order."],
+    ], [2.75 * inch, W - 2.75 * inch]))
+    s.append(P("How each pilot answers", "h2"))
+    s.append(table([
+        ["Pilot", "Answers your hail", "Orders before he goes"],
+        ["By-the-book", "\u201c\u2026on a routine patrol in international airspace. State your intentions.\u201d", "<b>1</b>: complies at once"],
+        ["Tester", "Same as by-the-book.", "<b>1</b>, but may come back if you don't follow him out"],
+        ["Showboat", "\u201cWe see you. Nice aircraft.\u201d", "<b>2</b>: \u201cOne moment, we are not finished here.\u201d"],
+        ["Hothead", "\u201cYou are very close. Keep your distance.\u201d", "<b>3</b>: \u201cInternational airspace. We go where we like.\u201d"],
+    ], [1.05 * inch, 3.35 * inch, W - 4.4 * inch]))
+    s.append(Spacer(1, 6))
+    s.append(P("They also talk without being asked: the hothead tells you to back off when you identify him, the showboat says "
+               "\u201cwatch this\u201d before his passes, \u201cEnjoy the fuel\u201d comes with the fuel dump, a shot at him gets "
+               "\u201cThis will be reported\u201d, and a pilot who's been talking to you announces when he turns for home."))
+    s.append(callout("<b>Talking helps walk out a hothead.</b> Once his passes are over and he's back on his probe track, every "
+                     "order you give him counts as 30 seconds of escort, on top of sitting on his wing.", NAVY))
+    s.append(P("Setting it up", "h2"))
+    s += bullets([
+        "Load <b>DCS-ATC</b> in the mission as its own instructions say, alongside DAWG. Load order doesn't matter: whichever "
+        "loads second finds the other.",
+        "Check " + C("dcs.log") + " for " + C("VOICE|on") + ". That line means DAWG and DCS-ATC have connected.",
+        "Change his words with " + C("voice_lines") + " in the config, the number of orders with " + C("obeys") + ", or switch it "
+        "off with " + C("voice = false") + " (section 8).",
+    ])
+
+    # --------------------------------------------------------------- 7 recipes
+    s.append(PageBreak())
+    s.append(P("7  Recipes: \u201cI want\u2026\u201d", "h1"))
     s.append(table([
         ["I want\u2026", "How"],
         ["Every jet out of one field to be a hothead", "Template name " + C("DAWG Su-27 Sochi #hothead") + "."],
@@ -393,12 +440,14 @@ def build():
         ["A reward when players do it right", "FLAG IS MORE " + C("DAWG_ESCORTED_OUT") + " 2 \u2192 message / sound / next phase."],
         ["A consequence when they get it wrong",
          "FLAG IS MORE " + C("DAWG_FIRED_ON") + " 0 \u2192 your incident trigger. FLAG IS MORE " + C("DAWG_UNANSWERED") + " 2 \u2192 \u201cthey're getting bolder\u201d."],
+        ["Hotheads that take more talking", "Config: " + C("personalities = { hothead = { obeys = 5 } }") + "."],
+        ["Quiet probes, even with DCS-ATC in the mission", "Config: " + C("voice = false") + "."],
         ["A hothead that's harder to get rid of, or a new pilot type", "Config file (next section)."],
     ], [2.45 * inch, W - 2.45 * inch]))
     s.append(PageBreak())
 
-    # ------------------------------------------------------------- 7 config
-    s.append(P("7  The config file (optional)", "h1"))
+    # ------------------------------------------------------------- 8 config
+    s.append(P("8  The config file (optional)", "h1"))
     s.append(P("Tags and flags choose <i>which</i> pilot flies. The config file changes <i>how</i> pilots behave and how DAWG runs. "
                "Copy " + C("DAWG_config_template.lua") + " from the zip, uncomment the lines you want, and load it between the "
                "borders file and " + C("DAWG.lua") + ". Every option in it is commented with its default; these are the common ones."))
@@ -445,8 +494,8 @@ DAWG_CONFIG = {
     ], [2.1 * inch, 1.15 * inch, W - 3.25 * inch]))
     s.append(Spacer(1, 14))
 
-    # --------------------------------------------------------- 8 troubleshoot
-    s.append(P("8  Troubleshooting", "h1"))
+    # --------------------------------------------------------- 9 troubleshoot
+    s.append(P("9  Troubleshooting", "h1"))
     s.append(P("DAWG writes every event to " + C("Saved Games\\DCS\\Logs\\dcs.log") + " as lines starting with " + C("DAWG|") + ". "
                "Search the log for them first."))
     s.append(table([
@@ -468,8 +517,8 @@ DAWG_CONFIG = {
         [C("DAWG_borders_caucasus.lua"), "Real Caucasus borders (from Natural Earth, public domain)."],
         [C("DAWG_config_template.lua"), "Every option, commented. Optional."],
         [C("examples/DAWG_config_Caucasus.lua"), "A complete config written in Lua instead of the Mission Editor."],
-        [C("missions/DAWG_Starter_Caucasus_v1.0.miz"), "Open in the Mission Editor: everything in this guide, set up."],
-        [C("missions/DAWG_Demo_Caucasus_v1.3.miz"), "Spectate: five intercepts with five different pilots, all AI."],
+        [C("missions/" + STARTER), "Open in the Mission Editor: everything in this guide, set up."],
+        [C("missions/" + DEMO), "Spectate: five intercepts with five different pilots, all AI."],
         [C("MANUAL.md"), "The full technical reference, including the Lua scripting API."],
     ], [3.05 * inch, W - 3.05 * inch]))
     s.append(Spacer(1, 8))
