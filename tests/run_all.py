@@ -1,4 +1,4 @@
-"""Run every DAWS offline test with DCS's own Lua (luae).
+"""Run every DAWG offline test with DCS's own Lua (luae).
 
     python tests/run_all.py [--runs N]
 
@@ -19,7 +19,7 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE).replace("\\", "/")
-LUAE = os.environ.get("DAWS_LUAE", r"D:\DCS World Server\bin\luae.exe")   # DCS's own Lua 5.1: <any DCS install>\bin\luae.exe
+LUAE = os.environ.get("DAWG_LUAE", r"D:\DCS World Server\bin\luae.exe")   # DCS's own Lua 5.1: <any DCS install>\bin\luae.exe
 MISSIONS = os.path.join(os.path.expanduser("~"), "Saved Games", "DCS", "Missions")
 RUNS = int(sys.argv[sys.argv.index("--runs") + 1]) if "--runs" in sys.argv else 3
 
@@ -44,7 +44,7 @@ def extract(miz, tmp):
 def main():
     bad = []
     with tempfile.TemporaryDirectory() as tmp:
-        for sc in ("unanswered", "book_escort", "hothead", "abort", "hardturn", "turnback", "mig31", "airstart", "guard"):
+        for sc in ("unanswered", "book_escort", "hothead", "abort", "hardturn", "turnback", "mig31", "airstart", "guard", "legacy"):
             ok = 0
             for _ in range(RUNS):
                 out = lua(HERE + "/run_tests.lua", ROOT, sc)
@@ -63,8 +63,8 @@ def main():
                 bad.append(name)
                 print(out[-2000:])
         for name, pattern, script, token, extra in (
-                ("starter", "DAWS_Starter_Caucasus_v*.miz", "run_starter.lua", "STARTER PASS", []),
-                ("demo", "DAWS_Demo_Caucasus_v*.miz", "run_demo5.lua", "DEMO5 PASS", ["3"])):
+                ("starter", "DAWG_Starter_Caucasus_v*.miz", "run_starter.lua", "STARTER PASS", []),
+                ("demo", "DAWG_Demo_Caucasus_v*.miz", "run_demo5.lua", "DEMO5 PASS", ["3"])):
             miz = latest(pattern)
             if not miz:
                 print("%-12s SKIP (no %s)" % (name, pattern))

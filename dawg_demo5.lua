@@ -1,5 +1,5 @@
 -- ============================================================================
--- DAWS DEMO - five intercepts, five reactions (all AI, spectator, REAL borders).
+-- DAWG DEMO - five intercepts, five reactions (all AI, spectator, REAL borders).
 --   1 HOTHEAD     GAGRA sea lane   Pontiac 1  show + fuel dump, refuses to leave until walked out
 --   2 SHOWBOAT    POTI sea lane    Pontiac 2  a pass or two, then home
 --   3 BY-THE-BOOK ROKI ridge       Pontiac 3  shadowed from the Georgian side, complies, goes home
@@ -25,15 +25,15 @@ local SC = {
 }
 
 local function say(sc, t, d) trigger.action.outText("[" .. sc.tag .. "] " .. t, d or 20) end
-local function lg(...) env.info("DAWSDEMO|" .. string.format("%d", timer.getTime()) .. "|" .. table.concat({ ... }, "|")) end
+local function lg(...) env.info("DAWGDEMO|" .. string.format("%d", timer.getTime()) .. "|" .. table.concat({ ... }, "|")) end
 local function wpt(x, z, alt, spd)
   return { x = x, y = z, alt = alt, alt_type = "BARO", type = "Turning Point", action = "Turning Point",
            speed = spd, speed_locked = true, task = { id = "ComboTask", params = { tasks = {} } } }
 end
 
-if not DAWS or not DAWS.launch then
-  trigger.action.outText("DEMO: DAWS did not load - nothing will happen. Send Claude the DAWS lines from Saved Games\\DCS\\Logs\\dcs.log", 120)
-  env.error("[DAWSDEMO] DAWS not loaded")
+if not DAWG or not DAWG.launch then
+  trigger.action.outText("DEMO: DAWG did not load - nothing will happen. Send Claude the DAWG lines from Saved Games\\DCS\\Logs\\dcs.log", 120)
+  env.error("[DAWGDEMO] DAWG not loaded")
   return
 end
 for _, sc in ipairs(SC) do
@@ -44,7 +44,7 @@ end
 do
   local id = 9000
   local function V(t) local p = coord.LLtoLO(t[1], t[2], 0); return { x = p.x, y = 0, z = p.z } end
-  for _, b in ipairs(DAWS_CONFIG.borders or {}) do
+  for _, b in ipairs(DAWG_CONFIG.borders or {}) do
     local sea = b.name:find("sea", 1, true)
     local geo = b.name:find("Georgia", 1, true)
     local line = sea and { 0.3, 0.6, 1, 0.9 } or (geo and { 1, 0.25, 0.25, 0.9 } or { 0.7, 0.7, 0.7, 0.8 })
@@ -58,16 +58,16 @@ do
     end
   end
   for _, sc in ipairs(SC) do
-    local lane = DAWS.lanes[sc.lane]
-    for _, d in ipairs({ 0, DAWS_CONFIG.max_depth }) do
-      local pts = DAWS.legAt(lane, d)
+    local lane = DAWG.lanes[sc.lane]
+    for _, d in ipairs({ 0, DAWG_CONFIG.max_depth }) do
+      local pts = DAWG.legAt(lane, d)
       for i = 1, #pts - 1 do
         id = id + 1
         trigger.action.lineToAll(-1, id, { x = pts[i].x, y = 0, z = pts[i].z }, { x = pts[i + 1].x, y = 0, z = pts[i + 1].z },
           d == 0 and { 1, 0.85, 0.1, 0.95 } or { 1, 0.5, 0, 0.6 }, d == 0 and 1 or 2, true)
       end
     end
-    local p = DAWS.legAt(lane, 0)[1]
+    local p = DAWG.legAt(lane, 0)[1]
     id = id + 1
     trigger.action.textToAll(-1, id, { x = p.x, y = 0, z = p.z }, { 1, 0.85, 0.1, 1 }, { 0, 0, 0, 0.4 }, 13, true, sc.tag .. " (" .. sc.lane .. ")")
     if sc.home then
@@ -87,18 +87,18 @@ end
 -- notch). Sample the leg; wherever it gets within 1.5 NM of the line, push that
 -- sample inward (lane bearing) to 2 NM inside and fly through it first.
 local function insidePath(sc, from, to)
-  local dir = DAWS.lanes[sc.lane].dir
+  local dir = DAWG.lanes[sc.lane].dir
   local pts, cur = {}, from
   for _ = 1, 4 do
     local bad
     for i = 1, 12 do
       local f = i / 12
       local q = { x = cur.x + (to.x - cur.x) * f, z = cur.z + (to.z - cur.z) * f }
-      if DAWS.borderNm(q) > -1.5 then bad = q; break end
+      if DAWG.borderNm(q) > -1.5 then bad = q; break end
     end
     if not bad then break end
     for _ = 1, 80 do
-      if DAWS.borderNm(bad) <= -2 then break end
+      if DAWG.borderNm(bad) <= -2 then break end
       bad = { x = bad.x + dir.x * 0.5 * NM, z = bad.z + dir.z * 0.5 * NM }
     end
     pts[#pts + 1] = bad
@@ -138,8 +138,8 @@ local function flyInterceptor(sc, now)
   local b = bu:getPoint()
   if sc.kind == "land" then
     -- shadow abeam him, 2 NM inside Georgia: never cross the border
-    local dir = DAWS.lanes[sc.lane].dir
-    local bn = DAWS.borderNm(b)
+    local dir = DAWG.lanes[sc.lane].dir
+    local bn = DAWG.borderNm(b)
     if bn > 20 then return orbit(sc, c, u) end         -- he's well clear: nothing to shadow
     local v = bu:getVelocity()
     local sp = math.sqrt(v.x * v.x + v.z * v.z)
@@ -149,7 +149,7 @@ local function flyInterceptor(sc, now)
     -- the lane bearing isn't perpendicular to the border everywhere: walk the aim point in until it is
     -- at least 2 NM inside Georgia (never aim him across the line)
     for _ = 1, 80 do
-      if DAWS.borderNm({ x = tx, z = tz }) <= -2 then break end
+      if DAWG.borderNm({ x = tx, z = tz }) <= -2 then break end
       tx, tz = tx + dir.x * 0.5 * NM, tz + dir.z * 0.5 * NM
     end
     sc.aiMode = "shadow"
@@ -187,8 +187,8 @@ local function flyInterceptor(sc, now)
       local v = bu:getVelocity()
       local sp = math.sqrt(v.x * v.x + v.z * v.z)
       local hx, hz = (sp > 1) and v.x / sp or 1, (sp > 1) and v.z / sp or 0
-      local r = DAWS.borderNm({ x = b.x - hz * 1500, z = b.z + hx * 1500 })      -- right side
-      local l = DAWS.borderNm({ x = b.x + hz * 1500, z = b.z - hx * 1500 })      -- left side
+      local r = DAWG.borderNm({ x = b.x - hz * 1500, z = b.z + hx * 1500 })      -- right side
+      local l = DAWG.borderNm({ x = b.x + hz * 1500, z = b.z - hx * 1500 })      -- left side
       sc.side = (r <= l) and 1 or -1                                              -- the coast side
       c:setTask({ id = "Follow", params = { groupId = bg:getID(), pos = { x = 0, y = 0, z = 1500 * sc.side }, lastWptIndexFlag = false } })
     end)
@@ -207,8 +207,8 @@ local function narrate(sc, s, now)
     local how = (not sc.int) and "Nobody is going up for this one - watch the F10 map." or
       (sc.kind == "land" and (sc.int .. " moves up to shadow him from the Georgian side. Nobody crosses the border.") or
        (sc.int .. " is scrambling."))
-    say(sc, string.format("Probe begun, %.0f NM off the border (lane pressure +%d). %s", lu and DAWS.borderNm(lu:getPoint()) or 0,
-      DAWS.lanes[sc.lane].bias, how), 20)
+    say(sc, string.format("Probe begun, %.0f NM off the border (lane pressure +%d). %s", lu and DAWG.borderNm(lu:getPoint()) or 0,
+      DAWG.lanes[sc.lane].bias, how), 20)
   elseif st == "PROBE" and s.turnedBack and not sc.saidTurn then
     sc.saidTurn = true
     sc.bingo = nil
@@ -227,17 +227,17 @@ local function narrate(sc, s, now)
     elseif sc.kind == "land" then
       say(sc, "He's turned away from the border, heading home. " .. (sc.int or "Nobody") .. " holds at the border.", 15)
     else
-      say(sc, string.format("He's turning for home. %s escorts him out past %d NM.", sc.int or "Nobody", DAWS_CONFIG.release_nm), 15)
+      say(sc, string.format("He's turning for home. %s escorts him out past %d NM.", sc.int or "Nobody", DAWG_CONFIG.release_nm), 15)
     end
   elseif st == "RTB" then
-    local lane = DAWS.lanes[sc.lane]
+    local lane = DAWG.lanes[sc.lane]
     say(sc, "Done - he's going home. " .. ((not sc.int) and string.format("Unanswered: this lane's pressure is now +%d, so the next probe here starts closer. ", lane.bias) or "") ..
       "Next one in about 90 s.", 20)
   end
 end
 
 local function launch(sc)
-  local s = DAWS.launch(sc.lane, sc.tpl, sc.pers)
+  local s = DAWG.launch(sc.lane, sc.tpl, sc.pers)
   if not s then trigger.action.outText("[" .. sc.tag .. "] launch failed - check dcs.log", 20) return end
   s.tag = sc.tag
   sc.s, sc.last, sc.aiMode, sc.nextAt, sc.probed, sc.saidTurn, sc.bingo = s, nil, nil, nil, nil, nil, nil
@@ -258,18 +258,18 @@ timer.scheduleFunction(function(_, t)
       if (s.state == "RTB" or s.state == "DONE") and not sc.nextAt then sc.nextAt = now + 90 end
       if sc.nextAt and now >= sc.nextAt then launch(sc) end
     end)
-    if not ok then env.error("[DAWSDEMO] " .. sc.tag .. ": " .. tostring(err)) end
+    if not ok then env.error("[DAWGDEMO] " .. sc.tag .. ": " .. tostring(err)) end
   end
   return t + 2
 end, nil, timer.getTime() + 3)
 
-local top = missionCommands.addSubMenu("DAWS DEMO")
-missionCommands.addCommand("Status", top, function() DAWS.status() end)
+local top = missionCommands.addSubMenu("DAWG DEMO")
+missionCommands.addCommand("Status", top, function() DAWG.status() end)
 
 timer.scheduleFunction(function()
-  local L = { "DAWS DEMO - five intercepts, five different pilots. All AI: just watch. Real borders: red = Georgia, blue = 12 NM territorial sea." }
+  local L = { "DAWG DEMO - five intercepts, five different pilots. All AI: just watch. Real borders: red = Georgia, blue = 12 NM territorial sea." }
   for _, sc in ipairs(SC) do L[#L + 1] = string.format("  %s on the %s lane (T+%d:%02d): %s.", sc.tag, sc.lane, math.floor(sc.start / 60), sc.start % 60, sc.expect) end
   L[#L + 1] = "F10 map shows the lanes (yellow; dashed = deepest push) and the interceptors. F2/F6 to cycle cameras. Time acceleration is fine."
   trigger.action.outText(table.concat(L, "\n"), 60)
 end, nil, timer.getTime() + 5)
-env.info("[DAWSDEMO] five-scenario demo loaded")
+env.info("[DAWGDEMO] five-scenario demo loaded")

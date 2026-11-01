@@ -1,6 +1,6 @@
--- DAWS DEMO (five intercepts) overrides - after DAWS_config_Caucasus.lua, before DAWS.lua.
--- Air-start bandits mid-transit, one per scenario; daws_demo.lua launches them.
-local C = DAWS_CONFIG
+-- DAWG DEMO (five intercepts) overrides - after DAWG_config_Caucasus.lua, before DAWG.lua.
+-- Air-start bandits mid-transit, one per scenario; dawg_demo.lua launches them.
+local C = DAWG_CONFIG
 C.auto = false
 C.menu = false
 C.msg_all = true                 -- spectator demo: every call to everyone

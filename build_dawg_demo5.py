@@ -1,12 +1,12 @@
-"""Build the DAWS FIVE-INTERCEPT demo (all AI, spectator, REAL borders).
+"""Build the DAWG FIVE-INTERCEPT demo (all AI, spectator, REAL borders).
 
-    python build_daws_demo5.py   -> Saved Games/DCS/Missions/DAWS_Demo_Caucasus_v<VERSION>.miz
+    python build_dawg_demo5.py   -> Saved Games/DCS/Missions/DAWG_Demo_Caucasus_v<VERSION>.miz
 
-Five scenarios side by side, staggered ~2 min apart, each looping (daws_demo5.lua):
+Five scenarios side by side, staggered ~2 min apart, each looping (dawg_demo5.lua):
   1 HOTHEAD (GAGRA sea, Pontiac 1)   2 SHOWBOAT (POTI sea, Pontiac 2)
   3 BY-THE-BOOK (ROKI ridge, Pontiac 3)   4 TESTER - turns back (DARIAL ridge, Pontiac 4)
   5 UNANSWERED (ELBRUS ridge, nobody) - the lane remembers
-Borders = DAWS_borders_caucasus.lua (Natural Earth 10m, de jure Georgia + 12 NM sea, Turkey ...).
+Borders = DAWG_borders_caucasus.lua (Natural Earth 10m, de jure Georgia + 12 NM sea, Turkey ...).
 """
 import os
 import sys
@@ -20,10 +20,10 @@ from dcs.mission import StartType
 from dcs.unit import Skill
 from dcs.forcedoptions import ForcedOptions
 
-import daws_build_common as B
+import dawg_build_common as B
 
-VERSION = "1.3"
-NAME = "DAWS_Demo_Caucasus_v%s.miz" % VERSION
+VERSION = "1.4"
+NAME = "DAWG_Demo_Caucasus_v%s.miz" % VERSION
 
 # (template, type, spawn lat, lon, alt m) - air start, mid-transit, outside every no-go polygon
 RED = [("DEMO1_SU27", P.Su_27, 43.38, 39.20, 7000),
@@ -53,7 +53,7 @@ def build():
     m.start_time = datetime.datetime(2006, 5, 5, 10, 0, 0)       # GPS needs 2006+
     m.weather.clouds_density = 0
     m.set_description_text(
-        "DAWS DEMO - five intercepts, five different pilots (all AI - you spectate)\n\n"
+        "DAWG DEMO - five intercepts, five different pilots (all AI - you spectate)\n\n"
         "Real borders: Georgia (incl. Abkhazia + South Ossetia) and its 12 NM territorial sea are blue airspace; "
         "Russia is red. Soviet/Russian fighters probe five stretches of it, ~2 minutes apart, and keep cycling:\n\n"
         "1 HOTHEAD - GAGRA sea lane, Pontiac 1: fuel dump across the nose, close passes, then back to his probe "
@@ -97,11 +97,11 @@ def build():
         if g.name == "OVERLORD":
             g.units[0].callsign_dict = {1: 1, 2: 1, 3: 1, "name": "Overlord11"}
 
-    B.add_script(m, os.path.join(B.HERE, "DAWS_borders_caucasus.lua"), 1, "DAWS real borders (Caucasus)")
-    B.add_script(m, os.path.join(B.HERE, "DAWS_config_Caucasus.lua"), 2, "DAWS config (Caucasus, real borders)")
-    B.add_script(m, os.path.join(B.HERE, "DAWS_demo5_overrides.lua"), 3, "DAWS demo overrides (five intercepts)")
-    B.add_script(m, os.path.join(B.HERE, "DAWS.lua"), 4, "DAWS - Dynamic Air Warfare System")
-    B.add_script(m, os.path.join(B.HERE, "daws_demo5.lua"), 5, "DAWS demo director (five intercepts)")
+    B.add_script(m, os.path.join(B.HERE, "DAWG_borders_caucasus.lua"), 1, "DAWG real borders (Caucasus)")
+    B.add_script(m, os.path.join(B.HERE, "DAWG_config_Caucasus.lua"), 2, "DAWG config (Caucasus, real borders)")
+    B.add_script(m, os.path.join(B.HERE, "DAWG_demo5_overrides.lua"), 3, "DAWG demo overrides (five intercepts)")
+    B.add_script(m, os.path.join(B.HERE, "DAWG.lua"), 4, "DAWG - Dynamic Air Warfare Group")
+    B.add_script(m, os.path.join(B.HERE, "dawg_demo5.lua"), 5, "DAWG demo director (five intercepts)")
 
     out = os.path.join(B.OUT_DIR, NAME)
     if os.path.exists(out):

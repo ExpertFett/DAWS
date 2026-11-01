@@ -1,6 +1,6 @@
-"""Build the DAWS User Guide PDF (ships in the release zip).
+"""Build the DAWG User Guide PDF (ships in the release zip).
 
-    python tools/make_guide.py      -> docs/DAWS_User_Guide.pdf
+    python tools/make_guide.py      -> docs/DAWG_User_Guide.pdf
 """
 import os
 import re
@@ -17,8 +17,8 @@ from reportlab.platypus import (KeepTogether, PageBreak, Paragraph, Preformatted
 from reportlab.graphics.shapes import Drawing, Line, Polygon, Rect, String
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, "docs", "DAWS_User_Guide.pdf")
-VERSION = re.search(r'local VERSION = "([^"]+)"', open(os.path.join(ROOT, "DAWS.lua"), encoding="utf-8").read()).group(1)
+OUT = os.path.join(ROOT, "docs", "DAWG_User_Guide.pdf")
+VERSION = re.search(r'local VERSION = "([^"]+)"', open(os.path.join(ROOT, "DAWG.lua"), encoding="utf-8").read()).group(1)
 
 FONTS = r"C:\Windows\Fonts"
 pdfmetrics.registerFont(TTFont("Body", os.path.join(FONTS, "calibri.ttf")))
@@ -159,12 +159,12 @@ def on_page(canvas, doc):
         canvas.rect(0, letter[1] - 0.42 * inch, letter[0], 0.42 * inch, fill=1, stroke=0)
         canvas.setFillColor(colors.white)
         canvas.setFont("Body-B", 10)
-        canvas.drawString(0.8 * inch, letter[1] - 0.27 * inch, "DAWS  \u00b7  Dynamic Air Warfare System")
+        canvas.drawString(0.8 * inch, letter[1] - 0.27 * inch, "DAWG  \u00b7  Dynamic Air Warfare Group")
         canvas.setFont("Body", 9)
         canvas.drawRightString(letter[0] - 0.8 * inch, letter[1] - 0.27 * inch, "User Guide  v" + VERSION)
     canvas.setFillColor(MUTED)
     canvas.setFont("Body", 8.5)
-    canvas.drawString(0.8 * inch, 0.45 * inch, "github.com/ExpertFett/DAWS")
+    canvas.drawString(0.8 * inch, 0.45 * inch, "github.com/ExpertFett/DAWG")
     canvas.drawRightString(letter[0] - 0.8 * inch, 0.45 * inch, "Page %d" % doc.page)
     canvas.restoreState()
 
@@ -174,9 +174,9 @@ def build():
     W = 6.9 * inch
 
     # ------------------------------------------------------------------ cover
-    s += [Spacer(1, 1.3 * inch), P("DAWS", "title"), Spacer(1, 4), P("Dynamic Air Warfare System", "subtitle"),
+    s += [Spacer(1, 1.3 * inch), P("DAWG", "title"), Spacer(1, 4), P("Dynamic Air Warfare Group", "subtitle"),
           Spacer(1, 6), P("User Guide \u00b7 v%s" % VERSION, "subtitle"), Spacer(1, 0.45 * inch)]
-    s.append(callout("DAWS is a mission script for DCS World. Fighters launch from their own fields and <b>probe your border</b>: "
+    s.append(callout("DAWG is a mission script for DCS World. Fighters launch from their own fields and <b>probe your border</b>: "
                      "they fly along it, never cross it, and time how long you take to respond. When you intercept them, each one "
                      "reacts according to the <b>pilot</b> it drew. One complies and goes home. Another dumps fuel across your "
                      "windscreen and won't leave until you walk him out.", NAVY))
@@ -184,7 +184,7 @@ def build():
     s.append(table([
         ["What you get", ""],
         ["No Lua needed", "Set everything up in the Mission Editor with group names and flags."],
-        ["Four pilot types", "By-the-book, showboat, hothead, tester. Pick them, or let DAWS pick at random."],
+        ["Four pilot types", "By-the-book, showboat, hothead, tester. Pick them, or let DAWG pick at random."],
         ["Real borders", "The real Caucasus borders are built in. On other maps, draw your own zones."],
         ["Safe by design", "Never crosses a border, never shoots. Close passes keep at least 100 m and abort inside 50 m."],
         ["Multiplayer", "Runs on the server. Players need nothing installed."],
@@ -234,45 +234,45 @@ def build():
     # --------------------------------------------------------------- 2 setup
     s.append(P("2  Setup in five steps", "h1"))
     s.append(P("Everything below is done in the Mission Editor. The fastest way to learn it is to open "
-               "<b>missions/DAWS_Starter_Caucasus_v1.0.miz</b> from the zip, where every step is already done."))
+               "<b>missions/DAWG_Starter_Caucasus_v1.0.miz</b> from the zip, where every step is already done."))
 
     s.append(P("Step 1 \u2014 Load the script", "h2"))
     s.append(table([
         ["Trigger", "Condition", "Action"],
-        ["ONCE", "TIME MORE 1", "DO SCRIPT FILE \u2192 " + C("DAWS_borders_caucasus.lua") + "  (Caucasus only)"],
-        ["ONCE", "TIME MORE 2", "DO SCRIPT FILE \u2192 " + C("DAWS.lua") + "  (always last)"],
+        ["ONCE", "TIME MORE 1", "DO SCRIPT FILE \u2192 " + C("DAWG_borders_caucasus.lua") + "  (Caucasus only)"],
+        ["ONCE", "TIME MORE 2", "DO SCRIPT FILE \u2192 " + C("DAWG.lua") + "  (always last)"],
     ], [1.0 * inch, 1.3 * inch, W - 2.3 * inch]))
     s.append(P("Use DO SCRIPT FILE, not DO SCRIPT with the text pasted in. You don't need to edit MissionScripting.lua.", "small"))
 
     s.append(P("Step 2 \u2014 Place templates (who flies the probes)", "h2"))
-    s.append(P("A template is an aircraft group DAWS copies every time it launches a probe. The original never flies."))
+    s.append(P("A template is an aircraft group DAWG copies every time it launches a probe. The original never flies."))
     s += bullets([
         "<b>Side:</b> the probing side (red by default).",
         "<b>Late activation:</b> ON.",
         "<b>Start:</b> Takeoff from runway, at his home field. He takes off, probes and lands back there.",
-        "<b>Name:</b> must start with " + C("DAWS") + ", e.g. " + C("DAWS Su-27 Sochi") + ".",
-        "<b>ROE:</b> nothing to set. DAWS puts every probe on weapon hold itself.",
+        "<b>Name:</b> must start with " + C("DAWG") + ", e.g. " + C("DAWG Su-27 Sochi") + ".",
+        "<b>ROE:</b> nothing to set. DAWG puts every probe on weapon hold itself.",
         "<b>For the fuel dump:</b> put <b>Smoke Generator \u2013 white</b> on a pylon. The Su-27, Su-33, MiG-29, J-11A, "
         "Su-25 and L-39 can carry one; the MiG-31 can't, so it never dumps fuel.",
-        "<b>Size:</b> one aircraft is enough. DAWS sends singles or pairs at random (see the #single / #pair tags).",
+        "<b>Size:</b> one aircraft is enough. DAWG sends singles or pairs at random (see the #single / #pair tags).",
     ])
 
     s.append(P("Step 3 \u2014 Draw lanes (where they probe)", "h2"))
     s.append(P("A lane is the route a probe flies along the border. Draw it with any late-activated group: it never spawns, "
                "it only marks the route."))
     s += bullets([
-        "<b>Name:</b> " + C("DAWS LANE GAGRA") + " (any name after DAWS LANE). The name is also used in its flag: " + C("DAWS_LAUNCH_GAGRA") + ".",
+        "<b>Name:</b> " + C("DAWG LANE GAGRA") + " (any name after DAWG LANE). The name is also used in its flag: " + C("DAWG_LAUNCH_GAGRA") + ".",
         "<b>Waypoints:</b> two or more, drawn <b>parallel to the border and outside it</b>, about 10\u201315 NM off. "
-        "DAWS pushes the route closer on its own when nobody answers.",
-        "<b>Over land?</b> Add " + C("#land") + " to the name (e.g. " + C("DAWS LANE ROKI #land") + "). There are no passes over land; "
+        "DAWG pushes the route closer on its own when nobody answers.",
+        "<b>Over land?</b> Add " + C("#land") + " to the name (e.g. " + C("DAWG LANE ROKI #land") + "). There are no passes over land; "
         "you shadow him from your own side, so identifying him only needs 15 NM.",
     ])
 
     s.append(P("Step 4 \u2014 Borders (what they won't cross)", "h2"))
     s += bullets([
-        "<b>Caucasus:</b> nothing to do. Loading " + C("DAWS_borders_caucasus.lua") + " gives the real borders: Georgia (including "
+        "<b>Caucasus:</b> nothing to do. Loading " + C("DAWG_borders_caucasus.lua") + " gives the real borders: Georgia (including "
         "Abkhazia and South Ossetia) and its 12 NM sea, Turkey and its 12 NM sea, Armenia and Azerbaijan.",
-        "<b>Any other map:</b> draw polygon trigger zones named " + C("DAWS BORDER") + " (anything after it). Every one is off-limits. "
+        "<b>Any other map:</b> draw polygon trigger zones named " + C("DAWG BORDER") + " (anything after it). Every one is off-limits. "
         "Draw a separate polygon for the territorial sea.",
     ])
 
@@ -287,10 +287,10 @@ def build():
                "value beats any tag, a template's tag beats its lane's tag, and any tag beats the random choice."))
     s.append(table([
         ["You want", "Do this", "Example"],
-        ["One template always acts a certain way", "Tag the template's name", C("DAWS Su-27 Sochi #hothead")],
-        ["A template only flies certain lanes", "Tag it with @ and the lane name", C("DAWS MiG-29 Krymsk @POTI")],
-        ["Everyone on a lane acts one way", "Tag the lane's name", C("DAWS LANE GAGRA #showboat")],
-        ["This one launch, right now", "Set a launch flag (section 4)", C("DAWS_LAUNCH_GAGRA") + " = 4"],
+        ["One template always acts a certain way", "Tag the template's name", C("DAWG Su-27 Sochi #hothead")],
+        ["A template only flies certain lanes", "Tag it with @ and the lane name", C("DAWG MiG-29 Krymsk @POTI")],
+        ["Everyone on a lane acts one way", "Tag the lane's name", C("DAWG LANE GAGRA #showboat")],
+        ["This one launch, right now", "Set a launch flag (section 4)", C("DAWG_LAUNCH_GAGRA") + " = 4"],
         ["Random", "Do nothing", "45% book \u00b7 30% showboat \u00b7 15% hothead \u00b7 10% tester"],
     ], [2.15 * inch, 2.0 * inch, W - 4.15 * inch]))
     s.append(P("All the name tags", "h2"))
@@ -304,51 +304,51 @@ def build():
         [C("#land") + "  " + C("#sea"), "lane", "Over land or over water (normally worked out from the terrain)."],
     ], [2.35 * inch, 1.15 * inch, W - 3.5 * inch]))
     s.append(Spacer(1, 6))
-    s.append(P("You can combine tags: " + C("DAWS Su-33 Sochi #hothead @GAGRA #pair") + " is always a hothead pair on the GAGRA lane."))
+    s.append(P("You can combine tags: " + C("DAWG Su-33 Sochi #hothead @GAGRA #pair") + " is always a hothead pair on the GAGRA lane."))
     s.append(callout("Big aircraft never do close passes, whatever their tag. That covers the Tu-95/142, Tu-22M3, Tu-160, A-50, "
-                     "Il-76/78, An-26 and Su-24MR. They still probe, so a " + C("DAWS Tu-95 #book") + " is a classic Bear run "
+                     "Il-76/78, An-26 and Su-24MR. They still probe, so a " + C("DAWG Tu-95 #book") + " is a classic Bear run "
                      "down the coast.", NAVY))
     s.append(PageBreak())
 
     # --------------------------------------------------------------- 4 flags
-    s.append(P("4  Flags: controlling DAWS from triggers", "h1"))
-    s.append(P("DAWS uses <b>named flags</b>: type the name straight into any Mission Editor flag field. Use them to launch probes "
+    s.append(P("4  Flags: controlling DAWG from triggers", "h1"))
+    s.append(P("DAWG uses <b>named flags</b>: type the name straight into any Mission Editor flag field. Use them to launch probes "
                "from your own triggers or from F10 radio items, and to react to what happens."))
-    s.append(P("Flags DAWS watches (you set them)", "h2"))
+    s.append(P("Flags DAWG watches (you set them)", "h2"))
     s.append(table([
         ["Flag", "Set it to", "Effect"],
-        [C("DAWS_LAUNCH_&lt;LANE&gt;"), "1 \u2013 5", "Launch a probe on that lane now (spaces in the lane name become _). The value picks the pilot."],
-        [C("DAWS_LAUNCH"), "1 \u2013 5", "Same, on a random lane."],
-        [C("DAWS_PAUSE"), "1 / 0", "1 stops the automatic launches, 0 starts them again. Flag launches still work while paused."],
+        [C("DAWG_LAUNCH_&lt;LANE&gt;"), "1 \u2013 5", "Launch a probe on that lane now (spaces in the lane name become _). The value picks the pilot."],
+        [C("DAWG_LAUNCH"), "1 \u2013 5", "Same, on a random lane."],
+        [C("DAWG_PAUSE"), "1 / 0", "1 stops the automatic launches, 0 starts them again. Flag launches still work while paused."],
     ], [1.75 * inch, 0.85 * inch, W - 2.6 * inch]))
     s.append(Spacer(1, 6))
     s.append(table([
         ["Value", "1", "2", "3", "4", "5"],
         ["Pilot", "random", "by-the-book", "showboat", "hothead", "tester"],
     ], [0.8 * inch] + [(W - 0.8 * inch) / 5] * 5))
-    s.append(P("DAWS sets the launch flag back to 0 once the probe is up, so the same trigger or radio item can be used again.", "small"))
+    s.append(P("DAWG sets the launch flag back to 0 once the probe is up, so the same trigger or radio item can be used again.", "small"))
     s.append(P("Example: a GM control panel in the F10 menu", "h2"))
     s.append(table([
         ["Trigger", "Condition", "Actions"],
         ["ONCE", "TIME MORE 3",
-         "ADD RADIO ITEM \u201cHothead on GAGRA\u201d \u2192 flag " + C("DAWS_LAUNCH_GAGRA") + ", value 4<br/>"
-         "ADD RADIO ITEM \u201cShowboat on POTI\u201d \u2192 flag " + C("DAWS_LAUNCH_POTI") + ", value 3<br/>"
-         "ADD RADIO ITEM \u201cPause probes\u201d \u2192 flag " + C("DAWS_PAUSE") + ", value 1"],
+         "ADD RADIO ITEM \u201cHothead on GAGRA\u201d \u2192 flag " + C("DAWG_LAUNCH_GAGRA") + ", value 4<br/>"
+         "ADD RADIO ITEM \u201cShowboat on POTI\u201d \u2192 flag " + C("DAWG_LAUNCH_POTI") + ", value 3<br/>"
+         "ADD RADIO ITEM \u201cPause probes\u201d \u2192 flag " + C("DAWG_PAUSE") + ", value 1"],
     ], [0.8 * inch, 1.1 * inch, W - 1.9 * inch]))
-    s.append(P("Flags DAWS counts up (you read them)", "h2"))
-    s.append(P("Each time something happens, DAWS adds 1 to its flag. Use them as conditions: <b>FLAG IS MORE</b> "
-               + C("DAWS_ESCORTED_OUT") + " 0 \u2192 MESSAGE TO ALL \u201cGood escort\u201d."))
+    s.append(P("Flags DAWG counts up (you read them)", "h2"))
+    s.append(P("Each time something happens, DAWG adds 1 to its flag. Use them as conditions: <b>FLAG IS MORE</b> "
+               + C("DAWG_ESCORTED_OUT") + " 0 \u2192 MESSAGE TO ALL \u201cGood escort\u201d."))
     s.append(table([
         ["Flag", "Counts", "Flag", "Counts"],
-        [C("DAWS_LAUNCHED"), "a probe launched", C("DAWS_ESCORTED_OUT"), "escorted out past 30 NM"],
-        [C("DAWS_PROBE"), "he reached his route", C("DAWS_WITHDREW"), "went home with no escort"],
-        [C("DAWS_INTERCEPT"), "he was identified", C("DAWS_UNANSWERED"), "a lap nobody responded to"],
-        [C("DAWS_SHOW"), "close passes started", C("DAWS_TURNBACK"), "he turned back toward the border"],
-        [C("DAWS_FUEL_DUMP"), "a fuel-dump pass", C("DAWS_FIRED_ON"), "someone shot at a probe"],
-        [C("DAWS_SHOW_ABORT"), "passes aborted (too close)", C("DAWS_LOST"), "a probe crashed or was shot down"],
+        [C("DAWG_LAUNCHED"), "a probe launched", C("DAWG_ESCORTED_OUT"), "escorted out past 30 NM"],
+        [C("DAWG_PROBE"), "he reached his route", C("DAWG_WITHDREW"), "went home with no escort"],
+        [C("DAWG_INTERCEPT"), "he was identified", C("DAWG_UNANSWERED"), "a lap nobody responded to"],
+        [C("DAWG_SHOW"), "close passes started", C("DAWG_TURNBACK"), "he turned back toward the border"],
+        [C("DAWG_FUEL_DUMP"), "a fuel-dump pass", C("DAWG_FIRED_ON"), "someone shot at a probe"],
+        [C("DAWG_SHOW_ABORT"), "passes aborted (too close)", C("DAWG_LOST"), "a probe crashed or was shot down"],
     ], [1.65 * inch, 1.8 * inch, 1.65 * inch, W - 5.1 * inch]))
     s.append(P("The F10 GM menu", "h2"))
-    s.append(P("The defending side gets <b>F10 \u2192 DAWS (GM)</b> automatically, with these entries:"))
+    s.append(P("The defending side gets <b>F10 \u2192 DAWG (GM)</b> automatically, with these entries:"))
     s += bullets([
         "<b>Status:</b> every probe out, with its pilot, state, response time, who identified it and who escorted it.",
         "<b>Launch a probe now:</b> pick a lane.",
@@ -370,8 +370,8 @@ def build():
         ["Stop a turnback", "Follow him out. Leave him alone on the way home and a tester will come back, and a hothead might."],
     ], [1.5 * inch, W - 1.5 * inch]))
     s.append(Spacer(1, 8))
-    s.append(callout("<b>Weapons tight.</b> Any shot or hit on a probe sends him home at speed, and DAWS logs it "
-                     "(" + C("DAWS_FIRED_ON") + "). If you have <b>AI</b> fighters on the defending side, set their ROE to weapon hold, "
+    s.append(callout("<b>Weapons tight.</b> Any shot or hit on a probe sends him home at speed, and DAWG logs it "
+                     "(" + C("DAWG_FIRED_ON") + "). If you have <b>AI</b> fighters on the defending side, set their ROE to weapon hold, "
                      "or they'll shoot the probes down."))
     s.append(Spacer(1, 12))
 
@@ -379,38 +379,38 @@ def build():
     s.append(P("6  Recipes: \u201cI want\u2026\u201d", "h1"))
     s.append(table([
         ["I want\u2026", "How"],
-        ["Every jet out of one field to be a hothead", "Template name " + C("DAWS Su-27 Sochi #hothead") + "."],
+        ["Every jet out of one field to be a hothead", "Template name " + C("DAWG Su-27 Sochi #hothead") + "."],
         ["A hothead on the coast at exactly 20 minutes",
-         "Trigger ONCE \u00b7 TIME MORE 1200 \u00b7 SET FLAG VALUE " + C("DAWS_LAUNCH_GAGRA") + " = 4."],
+         "Trigger ONCE \u00b7 TIME MORE 1200 \u00b7 SET FLAG VALUE " + C("DAWG_LAUNCH_GAGRA") + " = 4."],
         ["Only the probes I launch, none at random",
-         "Trigger ONCE \u00b7 TIME MORE 1 \u00b7 SET FLAG VALUE " + C("DAWS_PAUSE") + " = 1. Then launch with flags. "
+         "Trigger ONCE \u00b7 TIME MORE 1 \u00b7 SET FLAG VALUE " + C("DAWG_PAUSE") + " = 1. Then launch with flags. "
          "(Or " + C("auto = false") + " in a config.)"],
-        ["The GM to pick the pilot live", "F10 \u2192 DAWS (GM) \u2192 Next probe's personality, then Launch a probe now."],
-        ["A Bear run down the coast", "Template " + C("DAWS Tu-95 #book @GAGRA") + " (bombers never do passes)."],
-        ["One lane to be quiet and professional", "Lane name " + C("DAWS LANE ROKI #book") + "."],
+        ["The GM to pick the pilot live", "F10 \u2192 DAWG (GM) \u2192 Next probe's personality, then Launch a probe now."],
+        ["A Bear run down the coast", "Template " + C("DAWG Tu-95 #book @GAGRA") + " (bombers never do passes)."],
+        ["One lane to be quiet and professional", "Lane name " + C("DAWG LANE ROKI #book") + "."],
         ["Escalation: calm at first, aggressive later",
-         "Lane tagged " + C("#book") + "; at 45 min a trigger sets " + C("DAWS_LAUNCH_GAGRA") + " = 4 three times, a few minutes apart."],
-        ["A reward when players do it right", "FLAG IS MORE " + C("DAWS_ESCORTED_OUT") + " 2 \u2192 message / sound / next phase."],
+         "Lane tagged " + C("#book") + "; at 45 min a trigger sets " + C("DAWG_LAUNCH_GAGRA") + " = 4 three times, a few minutes apart."],
+        ["A reward when players do it right", "FLAG IS MORE " + C("DAWG_ESCORTED_OUT") + " 2 \u2192 message / sound / next phase."],
         ["A consequence when they get it wrong",
-         "FLAG IS MORE " + C("DAWS_FIRED_ON") + " 0 \u2192 your incident trigger. FLAG IS MORE " + C("DAWS_UNANSWERED") + " 2 \u2192 \u201cthey're getting bolder\u201d."],
+         "FLAG IS MORE " + C("DAWG_FIRED_ON") + " 0 \u2192 your incident trigger. FLAG IS MORE " + C("DAWG_UNANSWERED") + " 2 \u2192 \u201cthey're getting bolder\u201d."],
         ["A hothead that's harder to get rid of, or a new pilot type", "Config file (next section)."],
     ], [2.45 * inch, W - 2.45 * inch]))
     s.append(PageBreak())
 
     # ------------------------------------------------------------- 7 config
     s.append(P("7  The config file (optional)", "h1"))
-    s.append(P("Tags and flags choose <i>which</i> pilot flies. The config file changes <i>how</i> pilots behave and how DAWS runs. "
-               "Copy " + C("DAWS_config_template.lua") + " from the zip, uncomment the lines you want, and load it between the "
-               "borders file and " + C("DAWS.lua") + ". Every option in it is commented with its default; these are the common ones."))
+    s.append(P("Tags and flags choose <i>which</i> pilot flies. The config file changes <i>how</i> pilots behave and how DAWG runs. "
+               "Copy " + C("DAWG_config_template.lua") + " from the zip, uncomment the lines you want, and load it between the "
+               "borders file and " + C("DAWG.lua") + ". Every option in it is commented with its default; these are the common ones."))
     s.append(P("Make hotheads harder to walk out, and change the odds", "h2"))
     s.append(code('''
-DAWS_CONFIG = {
+DAWG_CONFIG = {
   personalities = { hothead = { escort_need_s = 300 } },   -- 5 minutes on his wing instead of 2.5
   weights = { book = 30, showboat = 30, hothead = 30, tester = 10 },
 }'''))
     s.append(P("A new pilot type", "h2"))
     s.append(code('''
-DAWS_CONFIG = {
+DAWG_CONFIG = {
   personalities = {
     cowboy = { label = "cowboy", depth = 2,           -- starts 2 steps closer
                stunts = { 3, 3 }, opens_with = "sit_six",
@@ -422,7 +422,7 @@ DAWS_CONFIG = {
     s.append(P("Tag templates " + C("#cowboy") + " to use it, or launch with flag value 6 (your own pilots are numbered from 6, alphabetically).", "small"))
     s.append(P("A timed script of probes", "h2"))
     s.append(code('''
-DAWS_CONFIG = {
+DAWG_CONFIG = {
   auto = false,                                    -- nothing at random
   schedule = {
     { at = 300,  lane = "GAGRA", personality = "book",    tag = "Act 1" },
@@ -447,41 +447,41 @@ DAWS_CONFIG = {
 
     # --------------------------------------------------------- 8 troubleshoot
     s.append(P("8  Troubleshooting", "h1"))
-    s.append(P("DAWS writes every event to " + C("Saved Games\\DCS\\Logs\\dcs.log") + " as lines starting with " + C("DAWS|") + ". "
+    s.append(P("DAWG writes every event to " + C("Saved Games\\DCS\\Logs\\dcs.log") + " as lines starting with " + C("DAWG|") + ". "
                "Search the log for them first."))
     s.append(table([
         ["You see", "What it means / what to do"],
-        ["Nothing happens at all", "Search the log for " + C("[DAWS] loaded") + " and " + C("Mission script error") + ". Is DAWS.lua loaded <b>last</b>, with DO SCRIPT FILE?"],
-        [C("WARN|no templates") + "<br/>" + C("WARN|no lanes"), "Check the names (" + C("DAWS \u2026") + " / " + C("DAWS LANE \u2026") + "), late activation, and that templates are on the probing side."],
-        [C("WARN|no borders defined"), "Load the borders file (Caucasus), or draw " + C("DAWS BORDER") + " zones."],
+        ["Nothing happens at all", "Search the log for " + C("[DAWG] loaded") + " and " + C("Mission script error") + ". Is DAWG.lua loaded <b>last</b>, with DO SCRIPT FILE?"],
+        [C("WARN|no templates") + "<br/>" + C("WARN|no lanes"), "Check the names (" + C("DAWG \u2026") + " / " + C("DAWG LANE \u2026") + "), late activation, and that templates are on the probing side."],
+        [C("WARN|no borders defined"), "Load the borders file (Caucasus), or draw " + C("DAWG BORDER") + " zones."],
         [C("LANE_WARN|\u2026 only x NM off"), "A lane waypoint is too close to the border. Move it further out."],
-        [C("SPAWN_COUNTRY"), "Normal. DAWS swapped to a country the game really puts on the probing side, so the jets come out the right colour."],
+        [C("SPAWN_COUNTRY"), "Normal. DAWG swapped to a country the game really puts on the probing side, so the jets come out the right colour."],
         [C("SHOW_STEP|\u2026|timeout"), "He didn't reach one pass position in 45 s. A few are normal. If every pass times out, send the log."],
-        [C("STUNT_REJECTED"), "A pass you wrote comes inside 100 m of the target, so DAWS won't fly it."],
+        [C("STUNT_REJECTED"), "A pass you wrote comes inside 100 m of the target, so DAWG won't fly it."],
         ["No fuel dump", "The template has no white smoke pod, or the type can't carry one (MiG-31)."],
     ], [2.05 * inch, W - 2.05 * inch]))
     s.append(Spacer(1, 4))
     s.append(P("What's in the zip", "h2"))
     s.append(table([
         ["File", "What"],
-        [C("DAWS.lua"), "The script. Load it last."],
-        [C("DAWS_borders_caucasus.lua"), "Real Caucasus borders (from Natural Earth, public domain)."],
-        [C("DAWS_config_template.lua"), "Every option, commented. Optional."],
-        [C("examples/DAWS_config_Caucasus.lua"), "A complete config written in Lua instead of the Mission Editor."],
-        [C("missions/DAWS_Starter_Caucasus_v1.0.miz"), "Open in the Mission Editor: everything in this guide, set up."],
-        [C("missions/DAWS_Demo_Caucasus_v1.3.miz"), "Spectate: five intercepts with five different pilots, all AI."],
+        [C("DAWG.lua"), "The script. Load it last."],
+        [C("DAWG_borders_caucasus.lua"), "Real Caucasus borders (from Natural Earth, public domain)."],
+        [C("DAWG_config_template.lua"), "Every option, commented. Optional."],
+        [C("examples/DAWG_config_Caucasus.lua"), "A complete config written in Lua instead of the Mission Editor."],
+        [C("missions/DAWG_Starter_Caucasus_v1.0.miz"), "Open in the Mission Editor: everything in this guide, set up."],
+        [C("missions/DAWG_Demo_Caucasus_v1.3.miz"), "Spectate: five intercepts with five different pilots, all AI."],
         [C("MANUAL.md"), "The full technical reference, including the Lua scripting API."],
     ], [3.05 * inch, W - 3.05 * inch]))
     s.append(Spacer(1, 8))
     s.append(callout("<b>Beta.</b> The full probe \u2192 intercept \u2192 passes \u2192 fuel dump \u2192 turnback \u2192 escort-out "
                      "cycle has run in DCS. The formation steering for close passes is new in this version. If passes look wrong, "
-                     "send the " + C("SHOW_STEP") + " lines from your dcs.log to github.com/ExpertFett/DAWS/issues.", NAVY))
+                     "send the " + C("SHOW_STEP") + " lines from your dcs.log to github.com/ExpertFett/DAWG/issues.", NAVY))
     s.append(Spacer(1, 8))
-    s.append(P("DAWS is free and open source under the MIT licence. Use it, change it and share it; keep the copyright notice.", "small"))
+    s.append(P("DAWG is free and open source under the MIT licence. Use it, change it and share it; keep the copyright notice.", "small"))
 
     doc = SimpleDocTemplate(OUT, pagesize=letter, leftMargin=0.8 * inch, rightMargin=0.8 * inch,
                             topMargin=0.75 * inch, bottomMargin=0.75 * inch,
-                            title="DAWS User Guide", author="ExpertFett", subject="Dynamic Air Warfare System for DCS World")
+                            title="DAWG User Guide", author="ExpertFett", subject="Dynamic Air Warfare Group for DCS World")
     doc.build(s, onFirstPage=on_page, onLaterPages=on_page)
     print("wrote", OUT)
 

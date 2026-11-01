@@ -1,4 +1,4 @@
-"""Shared pydcs helpers for the DAWS mission builders (starter + demo)."""
+"""Shared pydcs helpers for the DAWG mission builders (starter + demo)."""
 import os
 
 from dcs import triggers as TR

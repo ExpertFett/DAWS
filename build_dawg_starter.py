@@ -1,22 +1,22 @@
-"""Build DAWS_Starter_Caucasus - the example a mission maker opens in the Mission
+"""Build DAWG_Starter_Caucasus - the example a mission maker opens in the Mission
 Editor: everything is set up the NO-LUA way (names, waypoints, flags), and the
-only scripts are the borders file and DAWS.lua. No config file.
+only scripts are the borders file and DAWG.lua. No config file.
 
-    python build_daws_starter.py [VERSION]   -> Saved Games/DCS/Missions/DAWS_Starter_Caucasus_v<VERSION>.miz
+    python build_dawg_starter.py [VERSION]   -> Saved Games/DCS/Missions/DAWG_Starter_Caucasus_v<VERSION>.miz
 
 What's in it (and what it teaches):
   red templates  late-activated, RUNWAY start, weapons hold, white smoke pod where the type takes one:
-                   "DAWS Su-27 Sochi @GAGRA @POTI"      any personality, two lanes
-                   "DAWS Su-33 Sochi #hothead @GAGRA"   always a hothead
-                   "DAWS MiG-29 Krymsk #showboat @POTI" always a showboat
-                   "DAWS Su-27 Beslan @ROKI"
-                   "DAWS MiG-31 Mozdok #book @ROKI"     (no smoke pod on the MiG-31 -> no fuel dump)
-  lanes          late-activated groups "DAWS LANE GAGRA" / "DAWS LANE POTI" / "DAWS LANE ROKI #land":
+                   "DAWG Su-27 Sochi @GAGRA @POTI"      any personality, two lanes
+                   "DAWG Su-33 Sochi #hothead @GAGRA"   always a hothead
+                   "DAWG MiG-29 Krymsk #showboat @POTI" always a showboat
+                   "DAWG Su-27 Beslan @ROKI"
+                   "DAWG MiG-31 Mozdok #book @ROKI"     (no smoke pod on the MiG-31 -> no fuel dump)
+  lanes          late-activated groups "DAWG LANE GAGRA" / "DAWG LANE POTI" / "DAWG LANE ROKI #land":
                  their waypoints are the probe leg (parallel to the border, outside it)
-  borders        DAWS_borders_caucasus.lua (real borders, loaded automatically on this map)
+  borders        DAWG_borders_caucasus.lua (real borders, loaded automatically on this map)
   blue           client F/A-18Cs at Senaki, client F-14Bs at Kutaisi, OVERLORD E-3A
-  ME triggers    F10 radio items that set DAWS_LAUNCH_* / DAWS_PAUSE flags, and a trigger that
-                 reacts to DAWS_ESCORTED_OUT - DAWS driven from the Mission Editor, no Lua
+  ME triggers    F10 radio items that set DAWG_LAUNCH_* / DAWG_PAUSE flags, and a trigger that
+                 reacts to DAWG_ESCORTED_OUT - DAWG driven from the Mission Editor, no Lua
 """
 import os
 import sys
@@ -32,20 +32,20 @@ from dcs import action as A
 from dcs.mission import StartType
 from dcs.unit import Skill
 
-import daws_build_common as B
+import dawg_build_common as B
 
 VERSION = sys.argv[1] if len(sys.argv) > 1 else "1.0"
-NAME = "DAWS_Starter_Caucasus_v%s.miz" % VERSION
+NAME = "DAWG_Starter_Caucasus_v%s.miz" % VERSION
 
-TEMPLATES = [("DAWS Su-27 Sochi @GAGRA @POTI", P.Su_27, "Sochi-Adler"),
-             ("DAWS Su-33 Sochi #hothead @GAGRA", P.Su_33, "Sochi-Adler"),
-             ("DAWS MiG-29 Krymsk #showboat @POTI", P.MiG_29S, "Krymsk"),
-             ("DAWS Su-27 Beslan @ROKI", P.Su_27, "Beslan"),
-             ("DAWS MiG-31 Mozdok #book @ROKI", P.MiG_31, "Mozdok")]
-# lane legs (lat, lon) - same as DAWS_config_Caucasus.lua, here drawn as ME waypoints
-LANES = [("DAWS LANE GAGRA", [(43.11, 39.53), (42.86, 39.98), (42.61, 40.43)], 7000),
-         ("DAWS LANE POTI", [(42.45, 40.91), (42.10, 41.01), (41.80, 41.11)], 6500),
-         ("DAWS LANE ROKI #land", [(43.00, 43.55), (42.95, 43.95), (42.95, 44.35)], 8000)]
+TEMPLATES = [("DAWG Su-27 Sochi @GAGRA @POTI", P.Su_27, "Sochi-Adler"),
+             ("DAWG Su-33 Sochi #hothead @GAGRA", P.Su_33, "Sochi-Adler"),
+             ("DAWG MiG-29 Krymsk #showboat @POTI", P.MiG_29S, "Krymsk"),
+             ("DAWG Su-27 Beslan @ROKI", P.Su_27, "Beslan"),
+             ("DAWG MiG-31 Mozdok #book @ROKI", P.MiG_31, "Mozdok")]
+# lane legs (lat, lon) - same as DAWG_config_Caucasus.lua, here drawn as ME waypoints
+LANES = [("DAWG LANE GAGRA", [(43.11, 39.53), (42.86, 39.98), (42.61, 40.43)], 7000),
+         ("DAWG LANE POTI", [(42.45, 40.91), (42.10, 41.01), (41.80, 41.11)], 6500),
+         ("DAWG LANE ROKI #land", [(43.00, 43.55), (42.95, 43.95), (42.95, 44.35)], 8000)]
 
 
 def build():
@@ -53,14 +53,14 @@ def build():
     m.start_time = datetime.datetime(2006, 5, 5, 10, 0, 0)       # GPS needs 2006+
     m.weather.clouds_density = 0
     m.set_description_text(
-        "DAWS STARTER - set up the no-Lua way. Open it in the Mission Editor and look:\n\n"
-        "TEMPLATES: late-activated red groups named 'DAWS ...' (runway start, weapons hold). Tags in the name: "
+        "DAWG STARTER - set up the no-Lua way. Open it in the Mission Editor and look:\n\n"
+        "TEMPLATES: late-activated red groups named 'DAWG ...' (runway start, weapons hold). Tags in the name: "
         "#hothead / #showboat / #book / #tester fix the pilot; @GAGRA etc. pick the lanes it flies.\n"
-        "LANES: late-activated groups named 'DAWS LANE <name>' - their waypoints are the probe leg. #land = over the ridge.\n"
-        "BORDERS: real borders load automatically on the Caucasus (DAWS_borders_caucasus.lua). "
-        "Or draw polygon zones named 'DAWS BORDER ...'.\n"
-        "FLAGS: F10 > Other has radio items that set DAWS_LAUNCH_GAGRA (value 4 = hothead) etc. "
-        "A trigger watches DAWS_ESCORTED_OUT.\n\n"
+        "LANES: late-activated groups named 'DAWG LANE <name>' - their waypoints are the probe leg. #land = over the ridge.\n"
+        "BORDERS: real borders load automatically on the Caucasus (DAWG_borders_caucasus.lua). "
+        "Or draw polygon zones named 'DAWG BORDER ...'.\n"
+        "FLAGS: F10 > Other has radio items that set DAWG_LAUNCH_GAGRA (value 4 = hothead) etc. "
+        "A trigger watches DAWG_ESCORTED_OUT.\n\n"
         "Fly it: take a Hornet out of Senaki and intercept the probes. Inside 2 NM, co-altitude, 10 s = identified. "
         "WEAPONS TIGHT. Probes on 276.000 AM.")
     m.set_description_bluetask_text("Intercept, identify and escort Soviet/Russian probes. WEAPONS TIGHT.")
@@ -115,23 +115,23 @@ def build():
         if g.name == "OVERLORD":
             g.units[0].callsign_dict = {1: 1, 2: 1, 3: 1, "name": "Overlord11"}
 
-    B.add_script(m, os.path.join(B.HERE, "DAWS_borders_caucasus.lua"), 1, "DAWS real borders (Caucasus)")
-    B.add_script(m, os.path.join(B.HERE, "DAWS.lua"), 2, "DAWS - Dynamic Air Warfare System")
+    B.add_script(m, os.path.join(B.HERE, "DAWG_borders_caucasus.lua"), 1, "DAWG real borders (Caucasus)")
+    B.add_script(m, os.path.join(B.HERE, "DAWG.lua"), 2, "DAWG - Dynamic Air Warfare Group")
 
-    # DAWS from the Mission Editor: radio items that set its flags...
-    t = TR.TriggerOnce(comment="DAWS - F10 radio items (Mission Editor flags, no Lua)")
+    # DAWG from the Mission Editor: radio items that set its flags...
+    t = TR.TriggerOnce(comment="DAWG - F10 radio items (Mission Editor flags, no Lua)")
     t.add_condition(CO.TimeAfter(3))
-    for text, flag, value in (("DAWS: hothead on GAGRA", "DAWS_LAUNCH_GAGRA", 4),
-                              ("DAWS: showboat on POTI", "DAWS_LAUNCH_POTI", 3),
-                              ("DAWS: by-the-book on ROKI", "DAWS_LAUNCH_ROKI", 2),
-                              ("DAWS: random probe, any lane", "DAWS_LAUNCH", 1),
-                              ("DAWS: pause auto launches", "DAWS_PAUSE", 1),
-                              ("DAWS: resume auto launches", "DAWS_PAUSE", 0)):
+    for text, flag, value in (("DAWG: hothead on GAGRA", "DAWG_LAUNCH_GAGRA", 4),
+                              ("DAWG: showboat on POTI", "DAWG_LAUNCH_POTI", 3),
+                              ("DAWG: by-the-book on ROKI", "DAWG_LAUNCH_ROKI", 2),
+                              ("DAWG: random probe, any lane", "DAWG_LAUNCH", 1),
+                              ("DAWG: pause auto launches", "DAWG_PAUSE", 1),
+                              ("DAWG: resume auto launches", "DAWG_PAUSE", 0)):
         t.add_action(A.AddRadioItem(m.string(text), flag, value))
     m.triggerrules.triggers.append(t)
-    # ...and a trigger that reacts to one DAWS counts up
-    t = TR.TriggerOnce(comment="DAWS - react to an escort-out (DAWS counts DAWS_ESCORTED_OUT up)")
-    t.add_condition(CO.FlagIsMore("DAWS_ESCORTED_OUT", 0))
+    # ...and a trigger that reacts to one DAWG counts up
+    t = TR.TriggerOnce(comment="DAWG - react to an escort-out (DAWG counts DAWG_ESCORTED_OUT up)")
+    t.add_condition(CO.FlagIsMore("DAWG_ESCORTED_OUT", 0))
     t.add_action(A.MessageToAll(m.string("Mission Editor trigger: first probe escorted out - well done."), 15))
     m.triggerrules.triggers.append(t)
 

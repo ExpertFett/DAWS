@@ -1,5 +1,5 @@
 -- Five-intercept demo end-to-end in the mock (real .miz + its packed scripts).
--- usage: luae run_demo5.lua <DAWS dir> <extracted miz dir> [hours]
+-- usage: luae run_demo5.lua <DAWG dir> <extracted miz dir> [hours]
 local DIR, X = arg[1], arg[2]
 local HOURS = tonumber(arg[3] or "3")
 dofile(DIR .. "/tests/mock_dcs.lua")
@@ -40,7 +40,7 @@ for _ = 1, HOURS * 3600 do
   M.tick(1)
   for _, g in ipairs(M.groups) do
     if not g.gone and g.u.air then
-      local b = DAWS.borderNm(g.u.p)
+      local b = DAWG.borderNm(g.u.p)
       if g.side == 1 and b < redMin then redMin, redWho = b, g.name .. " @" .. M.t end
       if (g.name == "Pontiac 3" or g.name == "Pontiac 4") and M.t > 60 and b > ridgeMax then ridgeMax, ridgeWho = b, g.name .. " @" .. M.t end
     end
@@ -49,13 +49,13 @@ end
 
 -- sortie name -> scenario tag
 local tagOf = {}
-for _, l in ipairs(M.grep("DAWSDEMO|")) do
+for _, l in ipairs(M.grep("DAWGDEMO|")) do
   local tag, name = l:match("|LAUNCH|([^|]+)|%d+|([^|]+)|")
   if tag then tagOf[name] = tag end
 end
 local ev = {}
-for _, l in ipairs(M.grep("DAWS|")) do
-  local kind, name, rest = l:match("^DAWS|%d+|([%u_]+)|([^|]+)|?(.*)")
+for _, l in ipairs(M.grep("DAWG|")) do
+  local kind, name, rest = l:match("^DAWG|%d+|([%u_]+)|([^|]+)|?(.*)")
   local tag = name and tagOf[name]
   if tag then ev[tag] = ev[tag] or {}; table.insert(ev[tag], kind .. (rest ~= "" and ("|" .. rest) or "")) end
 end
@@ -98,7 +98,7 @@ local tagged = 0
 for _, t in ipairs(M.texts) do if t:find("^%[ALL%] %[%d ") then tagged = tagged + 1 end end
 check(tagged > 20, "messages tagged by scenario (" .. tagged .. ")")
 local untagged = 0
-for _, s in ipairs(DAWS.sorties) do if not s.tag then untagged = untagged + 1 end end
+for _, s in ipairs(DAWG.sorties) do if not s.tag then untagged = untagged + 1 end end
 check(untagged == 0, "no automatic launches on top of the scenarios (auto = false held; " .. untagged .. " untagged)")
 for _, l in ipairs(M.logs) do if l:find("ERR", 1, true) then print("  " .. l); fails = fails + 1 end end
 print(fails == 0 and "DEMO5 PASS" or ("DEMO5 FAILED " .. fails))

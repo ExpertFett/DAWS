@@ -1,8 +1,8 @@
--- Minimal DCS mission-scripting mock + kinematic sim for DAWS offline tests.
+-- Minimal DCS mission-scripting mock + kinematic sim for DAWG offline tests.
 -- Run with DCS's luae (Lua 5.1). Not a flight model: AI flies straight at its
 -- waypoint / Follow slot at a capped speed, which is enough to drive the logic.
 -- DCS's MissionScripting.lua sanitizes these out of the mission env; so do we
--- (math.randomseed being nil crashed DAWS v0.1 at load in the real sim, 2026-10-12)
+-- (math.randomseed being nil crashed DAWG v0.1 at load in the real sim, 2026-10-12)
 math.randomseed = nil
 os, io, lfs, require, loadlib = nil, nil, nil, nil, nil
 MOCK = { t = 0, groups = {}, byName = {}, nextId = 100, texts = {}, logs = {}, cmds = {}, fns = {}, handlers = {} }

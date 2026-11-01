@@ -1,4 +1,6 @@
-# DAWS Manual — v1.1.0-beta
+# DAWG Manual — v1.2.0-beta
+
+DAWG was called DAWS until 1.2.0. A mission set up for the old name keeps working: `DAWS_CONFIG`, `DAWS ...` groups, `DAWS BORDER` zones, the `DAWS_LAUNCH` / `DAWS_PAUSE` flags and a `DAWS_BORDERS_<MAP>` file are all read, the counters are written under both names, and the Lua global `DAWS` is the same table as `DAWG`. `legacy_names = false` in the config switches that off.
 
 1. [How a probe plays out](#1-how-a-probe-plays-out)
 2. [Installing](#2-installing)
@@ -30,7 +32,7 @@ LAUNCH ─► TRANSIT ─► PROBE ──(nobody comes)──► laps closer ─
                        └─► left alone while leaving? may TURN BACK (tester always, hothead sometimes)
 ```
 
-- **Response time.** DAWS times from the probe starting to the first defending fighter coming within 20 NM. It's in the log and in Status.
+- **Response time.** DAWG times from the probe starting to the first defending fighter coming within 20 NM. It's in the log and in Status.
 - **Lane memory.** A probe nobody answered raises that lane's pressure by one step, up to `max_depth`. The next probe there starts `step_nm` (4 NM) closer. A response within 5 minutes followed by an escort out lowers it again.
 - **The floor.** No probe ever gets closer than `floor_nm` (2 NM) to a border, however deep it pushes.
 - **Pairs.** Lead and wingman spawn as separate single-ship groups, 45 s apart on the runway. The wingman flies formation on the lead, and during a show he hangs back, high, as cover.
@@ -39,26 +41,26 @@ LAUNCH ─► TRANSIT ─► PROBE ──(nobody comes)──► laps closer ─
 
 ## 2. Installing
 
-DAWS is a mission script. Nothing goes in your DCS install, and multiplayer clients need nothing.
+DAWG is a mission script. Nothing goes in your DCS install, and multiplayer clients need nothing.
 
 Mission Editor → **Triggers**:
 
 | Trigger | Condition | Action |
 |---|---|---|
-| ONCE | TIME MORE 1 | DO SCRIPT FILE `DAWS_borders_caucasus.lua` *(optional, Caucasus only)* |
+| ONCE | TIME MORE 1 | DO SCRIPT FILE `DAWG_borders_caucasus.lua` *(optional, Caucasus only)* |
 | ONCE | TIME MORE 2 | DO SCRIPT FILE `your_config.lua` *(optional)* |
-| ONCE | TIME MORE 3 | DO SCRIPT FILE `DAWS.lua` |
+| ONCE | TIME MORE 3 | DO SCRIPT FILE `DAWG.lua` |
 
-Use **DO SCRIPT FILE**, not DO SCRIPT with pasted text. DAWS doesn't need `io`, `os` or `lfs`, so leave `MissionScripting.lua` alone.
+Use **DO SCRIPT FILE**, not DO SCRIPT with pasted text. DAWG doesn't need `io`, `os` or `lfs`, so leave `MissionScripting.lua` alone.
 
 ## 3. Setup without Lua (Mission Editor)
 
 ### Templates: who flies the probes
 
-Templates are **late-activated** groups of the probing side whose name starts with **`DAWS`**. DAWS copies the first unit, so a single ship is enough. It spawns as a single or a pair, at random, unless tagged.
+Templates are **late-activated** groups of the probing side whose name starts with **`DAWG`**. DAWG copies the first unit, so a single ship is enough. It spawns as a single or a pair, at random, unless tagged.
 
 - **Start:** *Takeoff from runway* at the home field. They take off, probe and land back there. Air starts work too, as mid-transit: name their landing field with `home =` in a config, or they fly back the way they came, 60 NM, and are cleaned up.
-- **Loadout:** anything. Weapons stay held. For the **fuel dump**, put a **Smoke Generator – white** on a pylon. The Su-27, Su-33, J-11A, MiG-29A/S/G, Su-25 and L-39 offer it, and DAWS detects it from the payload. Types without one, like the MiG-31, never fly the fuel-dump pass.
+- **Loadout:** anything. Weapons stay held. For the **fuel dump**, put a **Smoke Generator – white** on a pylon. The Su-27, Su-33, J-11A, MiG-29A/S/G, Su-25 and L-39 offer it, and DAWG detects it from the payload. Types without one, like the MiG-31, never fly the fuel-dump pass.
 - **Cruise:** taken from the template's 2nd waypoint (altitude and speed) if it has one, otherwise 7,000 m at 230 m/s.
 - **Big jets** (Tu-95/142, Tu-22M3, Tu-160, A-50, Il-76/78, An-26, Su-24MR) probe but never do shows.
 
@@ -72,59 +74,59 @@ Tags in the group name:
 | `#single` / `#pair` | Flight size. |
 | `@GAGRA` `@POTI` … | Flies only these lanes. Without any `@`, he flies every lane. |
 
-Example: `DAWS Su-27 Sochi #hothead @GAGRA`.
+Example: `DAWG Su-27 Sochi #hothead @GAGRA`.
 
 ### Lanes: where they probe
 
-A lane is any **late-activated** group (plane is easiest) named **`DAWS LANE <NAME>`**. It's never spawned; it only draws the leg.
+A lane is any **late-activated** group (plane is easiest) named **`DAWG LANE <NAME>`**. It's never spawned; it only draws the leg.
 
-- Its **waypoints are the probe leg**: two or more points, **parallel to the border and outside it**. A good starting depth is 10–15 NM off. DAWS pushes it closer on its own.
-- DAWS works out which way the border is (to push the leg toward it), and whether the lane is over land.
+- Its **waypoints are the probe leg**: two or more points, **parallel to the border and outside it**. A good starting depth is 10–15 NM off. DAWG pushes it closer on its own.
+- DAWG works out which way the border is (to push the leg toward it), and whether the lane is over land.
 - Tags: `#land` / `#sea` override the terrain check. `#hothead` etc. fix the pilot for the whole lane.
-- The lane name is uppercased: `DAWS LANE Gagra` becomes lane `GAGRA`, with flag `DAWS_LAUNCH_GAGRA`.
+- The lane name is uppercased: `DAWG LANE Gagra` becomes lane `GAGRA`, with flag `DAWG_LAUNCH_GAGRA`.
 
 The log warns (`LANE_WARN`) if a leg point sits inside the floor.
 
 ### Borders: what they won't cross
 
-- **Caucasus:** load `DAWS_borders_caucasus.lua` and the real borders are used automatically. That covers Georgia (de jure, so Abkhazia and South Ossetia count as Georgia) and its 12 NM territorial sea, Turkey and its 12 NM Black Sea strip, Armenia and Azerbaijan.
-- **Any map:** draw **polygon trigger zones** (or circles) named **`DAWS BORDER <anything>`**. Every one is a no-go area. Draw the sea strip as its own polygon.
+- **Caucasus:** load `DAWG_borders_caucasus.lua` and the real borders are used automatically. That covers Georgia (de jure, so Abkhazia and South Ossetia count as Georgia) and its 12 NM territorial sea, Turkey and its 12 NM Black Sea strip, Armenia and Azerbaijan.
+- **Any map:** draw **polygon trigger zones** (or circles) named **`DAWG BORDER <anything>`**. Every one is a no-go area. Draw the sea strip as its own polygon.
 - They add up. Built-in borders, zones and config borders all count.
 
 ## 4. Mission Editor flags
 
 Flags are **named flags**: type the name into the ME flag field.
 
-**DAWS watches these.** Set one above 0 to launch; DAWS sets it back to 0.
+**DAWG watches these.** Set one above 0 to launch; DAWG sets it back to 0.
 
 | Flag | Value | Effect |
 |---|---|---|
-| `DAWS_LAUNCH_<LANE>` | 1–n | Launch on that lane (spaces in the name become `_`). |
-| `DAWS_LAUNCH` | 1–n | Launch on a random lane. |
-| `DAWS_PAUSE` | 1 / 0 | Pause / resume **automatic** launches (flag launches still work). |
+| `DAWG_LAUNCH_<LANE>` | 1–n | Launch on that lane (spaces in the name become `_`). |
+| `DAWG_LAUNCH` | 1–n | Launch on a random lane. |
+| `DAWG_PAUSE` | 1 / 0 | Pause / resume **automatic** launches (flag launches still work). |
 
 The value picks the pilot: **1** from the weights, **2** by-the-book, **3** showboat, **4** hothead, **5** tester, and **6+** your own personalities, in alphabetical order.
 
-A quick no-Lua control panel: **ADD RADIO ITEM** "Hothead on GAGRA", flag `DAWS_LAUNCH_GAGRA`, value `4`.
+A quick no-Lua control panel: **ADD RADIO ITEM** "Hothead on GAGRA", flag `DAWG_LAUNCH_GAGRA`, value `4`.
 
-**DAWS counts these up** (+1 each time):
+**DAWG counts these up** (+1 each time):
 
 | Flag | When |
 |---|---|
-| `DAWS_LAUNCHED` | A probe launched. |
-| `DAWS_PROBE` | It reached its leg (the probe has begun). |
-| `DAWS_INTERCEPT` | It was identified. |
-| `DAWS_SHOW` | A show started. |
-| `DAWS_FUEL_DUMP` | A fuel-dump pass. |
-| `DAWS_ESCORTED_OUT` | Escorted out past `release_nm`. |
-| `DAWS_WITHDREW` | Went home without an escort. |
-| `DAWS_UNANSWERED` | A lap with nobody responding. |
-| `DAWS_TURNBACK` | Turned back toward the border. |
-| `DAWS_FIRED_ON` | A defender shot at or hit one. |
-| `DAWS_SHOW_ABORT` | A show aborted (something got inside 50 m). |
-| `DAWS_LOST` | A probe was lost (crashed or shot down). |
+| `DAWG_LAUNCHED` | A probe launched. |
+| `DAWG_PROBE` | It reached its leg (the probe has begun). |
+| `DAWG_INTERCEPT` | It was identified. |
+| `DAWG_SHOW` | A show started. |
+| `DAWG_FUEL_DUMP` | A fuel-dump pass. |
+| `DAWG_ESCORTED_OUT` | Escorted out past `release_nm`. |
+| `DAWG_WITHDREW` | Went home without an escort. |
+| `DAWG_UNANSWERED` | A lap with nobody responding. |
+| `DAWG_TURNBACK` | Turned back toward the border. |
+| `DAWG_FIRED_ON` | A defender shot at or hit one. |
+| `DAWG_SHOW_ABORT` | A show aborted (something got inside 50 m). |
+| `DAWG_LOST` | A probe was lost (crashed or shot down). |
 
-Example: **FLAG IS MORE** `DAWS_ESCORTED_OUT` 2 → **MESSAGE TO ALL** "Three escorted out — good work."
+Example: **FLAG IS MORE** `DAWG_ESCORTED_OUT` 2 → **MESSAGE TO ALL** "Three escorted out — good work."
 
 ## 5. Pilots (personalities)
 
@@ -143,7 +145,7 @@ A probe with no fixed pilot draws one from `weights` (default book 45, showboat 
 Changing one, or adding your own, takes a config file (section 7):
 
 ```lua
-DAWS_CONFIG = {
+DAWG_CONFIG = {
   personalities = {
     hothead = { escort_need_s = 240 },
     cowboy  = { label = "cowboy", depth = 2, stunts = { 3, 3 }, opens_with = "sit_six",
@@ -187,14 +189,14 @@ Then add it to a personality's `pool`.
 
 ## 7. The config file
 
-Optional. Copy **`DAWS_config_template.lua`**, uncomment what you want to change, and load it before `DAWS.lua`. Every option is listed there with its default. The most used ones:
+Optional. Copy **`DAWG_config_template.lua`**, uncomment what you want to change, and load it before `DAWG.lua`. Every option is listed there with its default. The most used ones:
 
 | Option | Default | |
 |---|---|---|
 | `side` | `"red"` | The probing side. |
 | `auto`, `first_s`, `interval_s`, `max_active` | true, 600, {900,1500}, 2 | Automatic launches. |
 | `weights`, `personalities` | — | Section 5. |
-| `templates`, `lanes`, `borders` | discovered | Give them in Lua instead of the ME (see `examples/DAWS_config_Caucasus.lua`). |
+| `templates`, `lanes`, `borders` | discovered | Give them in Lua instead of the ME (see `examples/DAWG_config_Caucasus.lua`). |
 | `schedule` | — | `{ { at = 300, lane = "GAGRA", personality = "hothead", tag = "Act 1" }, { at = 1200, lane = "ROKI", every = {1800,2400} } }` |
 | `floor_nm`, `step_nm`, `max_depth`, `max_laps` | 2, 4, 3, 3 | How close, how fast they push. |
 | `intercept_nm`, `intercept_alt_m`, `intercept_s` | 2, 1000, 10 | What counts as an ID. |
@@ -210,19 +212,19 @@ When a config gives `templates` or `lanes`, those are used **instead of** discov
 ## 8. Scripting API
 
 ```lua
-DAWS.launch{ lane = "GAGRA", template = "DAWS Su-27 Sochi", personality = "hothead", tag = "Act 1" }  -- all optional
-DAWS.launch("GAGRA", nil, "tester")        -- positional form
-DAWS.status()                              -- the Status message to the defending side
-DAWS.pause(true) / DAWS.pause(false)       -- automatic launches
-DAWS.setPersonality("showboat")            -- the next automatic launch
-DAWS.addPersonality("cowboy", { ... })
-DAWS.borderNm(point)                       -- NM from the nearest border (negative = inside)
-DAWS.onEvent = function(kind, name, ...) end   -- every log event below
-DAWS.onGuard(ev)                           -- what DCS-ATC calls with a fighter's hail or order on Guard (section 11)
-DAWS.sorties, DAWS.lanes, DAWS.templates, DAWS.personalities, DAWS.stunts   -- live tables (read them)
+DAWG.launch{ lane = "GAGRA", template = "DAWG Su-27 Sochi", personality = "hothead", tag = "Act 1" }  -- all optional
+DAWG.launch("GAGRA", nil, "tester")        -- positional form
+DAWG.status()                              -- the Status message to the defending side
+DAWG.pause(true) / DAWG.pause(false)       -- automatic launches
+DAWG.setPersonality("showboat")            -- the next automatic launch
+DAWG.addPersonality("cowboy", { ... })
+DAWG.borderNm(point)                       -- NM from the nearest border (negative = inside)
+DAWG.onEvent = function(kind, name, ...) end   -- every log event below
+DAWG.onGuard(ev)                           -- what DCS-ATC calls with a fighter's hail or order on Guard (section 11)
+DAWG.sorties, DAWG.lanes, DAWG.templates, DAWG.personalities, DAWG.stunts   -- live tables (read them)
 ```
 
-A sortie (`DAWS.sorties[i]`) has `name`, `lane.name`, `pers`, `state`, `tag`, `tResponse`, `intercepted.by`, `escort[name] = seconds`, `lead` / `wing` (group names) and `depth`.
+A sortie (`DAWG.sorties[i]`) has `name`, `lane.name`, `pers`, `state`, `tag`, `tResponse`, `intercepted.by`, `escort[name] = seconds`, `lead` / `wing` (group names) and `depth`.
 
 ## 9. For the defending side
 
@@ -234,24 +236,24 @@ A sortie (`DAWS.sorties[i]`) has `name`, `lane.name`, `pers`, `state`, `tag`, `t
 
 ## 10. Logs and troubleshooting
 
-Every event goes to `Saved Games\DCS\Logs\dcs.log` as `DAWS|<mission seconds>|<EVENT>|...`. The events are:
+Every event goes to `Saved Games\DCS\Logs\dcs.log` as `DAWG|<mission seconds>|<EVENT>|...`. The events are:
 
 `LOADED`, `BORDERS`, `LAUNCH`, `AIRBORNE`, `PROBE`, `RESPONSE`, `UNANSWERED`, `INTERCEPT`, `SHOW_START`, `SHOW_STEP`, `FUEL_DUMP`, `SHOW_PAUSE`, `SHOW_RESUME`, `SHOW_ABORT`, `SHOW_END`, `COMPLY`, `RESUME_PROBE`, `TURNBACK`, `ESCORTED_OUT`, `WITHDREW`, `FIRED_ON`, `LEAD_LOST`, `LOST`, `END`, `FLAG_LAUNCH`, `SPAWN_COUNTRY`, `PAUSE`, and with DCS-ATC `HAILED`, `ORDERED`, `VOICE` (section 11).
 
 | You see | It means |
 |---|---|
 | `WARN\|no borders defined` | No borders file, zones or config borders. The probes have nothing to stay out of. |
-| `WARN\|no lanes` / `no templates` | Check the names: `DAWS LANE …` / `DAWS …`, and **late activation** on templates. |
+| `WARN\|no lanes` / `no templates` | Check the names: `DAWG LANE …` / `DAWG …`, and **late activation** on templates. |
 | `LANE_WARN\|… only x NM off the border` | Move that waypoint further out. |
-| `SPAWN_COUNTRY\|… country 68 -> 0` | Fine. The template's country isn't on the probing side in the engine's own country table, so DAWS spawned as one that is. Without this, spawns can come out **neutral**. |
+| `SPAWN_COUNTRY\|… country 68 -> 0` | Fine. The template's country isn't on the probing side in the engine's own country table, so DAWG spawned as one that is. Without this, spawns can come out **neutral**. |
 | `SPAWN_FAIL` | No country on the probing side could spawn it. Is the template on the right side? |
 | `SHOW_STEP\|…\|timeout` | The bandit didn't reach that slot in 45 s. A few are normal. If every step times out, report it with the log. |
 | `STUNT_REJECTED` | One of your passes comes inside `min_sep_m`. |
-| Nothing at all | Is DAWS loaded **last**? Search the log for `[DAWS] loaded` and `Mission script error`. |
+| Nothing at all | Is DAWG loaded **last**? Search the log for `[DAWG] loaded` and `Mission script error`. |
 
 ## 11. Voices on Guard (with DCS-ATC)
 
-With the [DCS-ATC](https://github.com/ExpertFett/DCS-ATC) script in the same mission (and its SRS listener running on the server), the probes talk. The listener hears a fighter on Guard, 243.0, and the ATC hands the call to DAWS; the probe answers in the ATC's Russian voice, through his own radio, and his personality decides what he does. The ATC tasks nothing of DAWS's and DAWS tasks nothing of the ATC's: the pilot answers, DAWS flies him. Without the ATC in the mission nothing changes.
+With the [DCS-ATC](https://github.com/ExpertFett/DCS-ATC) script in the same mission (and its SRS listener running on the server), the probes talk. The listener hears a fighter on Guard, 243.0, and the ATC hands the call to DAWG; the probe answers in the ATC's Russian voice, through his own radio, and his personality decides what he does. The ATC tasks nothing of DAWG's and DAWG tasks nothing of the ATC's: the pilot answers, DAWG flies him. Without the ATC in the mission nothing changes.
 
 Inside 5 NM of him, on 243.0:
 
@@ -267,7 +269,7 @@ He also talks unprompted: the hothead tells you to back off when you identify hi
 Orders to a stubborn hothead count toward walking him out: each one is worth `voice_order_credit_s` (30 s) of escort.
 
 ```lua
-DAWS_CONFIG = {
+DAWG_CONFIG = {
   voice = true,                      -- false: quiet even with the ATC present
   voice_order_credit_s = 30,
   voice_lines = {                    -- override any line: a string, a per-pilot table, a list (picked by how

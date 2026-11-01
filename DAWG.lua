@@ -1,5 +1,5 @@
 -- ============================================================================
--- DAWS - Dynamic Air Warfare System                               v1.0.0-beta
+-- DAWG - Dynamic Air Warfare Group (formerly DAWS)               v1.2.0-beta
 -- Peacetime / crisis air activity for DCS World: the probing side flies out of
 -- its own fields, PROBES the other side's border without crossing it, and reacts
 -- to the intercept according to a PERSONALITY - from "complies and goes home" to
@@ -7,15 +7,15 @@
 -- Standalone: no MOOSE, no MIST. Multiplayer / dedicated-server safe.
 --
 -- LOAD ORDER (Mission Editor, MISSION START or TIME MORE, action DO SCRIPT FILE):
---   1. (optional) a borders file, e.g. DAWS_borders_caucasus.lua
---   2. (optional) your config, e.g. DAWS_config.lua  (sets DAWS_CONFIG = { ... })
---   3. DAWS.lua
--- With no config at all DAWS sets itself up from the Mission Editor:
---   templates = late-activated groups of the probing side named "DAWS ..."
+--   1. (optional) a borders file, e.g. DAWG_borders_caucasus.lua
+--   2. (optional) your config, e.g. DAWG_config.lua  (sets DAWG_CONFIG = { ... })
+--   3. DAWG.lua
+-- With no config at all DAWG sets itself up from the Mission Editor:
+--   templates = late-activated groups of the probing side named "DAWG ..."
 --               (tags in the name: #book #showboat #hothead #tester #nostunts @LANE)
---   lanes     = late-activated groups named "DAWS LANE <name>" - their waypoints
+--   lanes     = late-activated groups named "DAWG LANE <name>" - their waypoints
 --               are the probe leg (flown parallel to the border, outside it)
---   borders   = trigger zones named "DAWS BORDER ..." (polygon or circle), plus
+--   borders   = trigger zones named "DAWG BORDER ..." (polygon or circle), plus
 --               the built-in real borders for the map if that borders file is loaded
 -- Full manual: README.md / MANUAL.md in the release zip.
 --
@@ -25,17 +25,17 @@
 -- in flight (anything defending inside abort_sep_m = abort, break away). Shows
 -- pause while the target turns hard or is low, and never happen near a border.
 --
--- Log lines (dcs.log): DAWS|<mission time>|<EVENT>|...
+-- Log lines (dcs.log): DAWG|<mission time>|<EVENT>|...
 -- ============================================================================
-env.info("[DAWS] script start")
-local VERSION = "1.1.0-beta"
-DAWS_CONFIG = DAWS_CONFIG or {}
-local C = DAWS_CONFIG
+env.info("[DAWG] script start")
+local VERSION = "1.2.0-beta"
+DAWG_CONFIG = DAWG_CONFIG or DAWS_CONFIG or {}     -- DAWS_CONFIG: a config written for the old name
+local C = DAWG_CONFIG
 
 local DEFAULTS = {
   side = "red",                      -- the probing side
   messages = true, msg_all = false, group_msgs_to_all = false,
-  menu = true, menu_name = "DAWS (GM)",
+  menu = true, menu_name = "DAWG (GM)",
   awacs = "OVERLORD",                -- who makes the calls to the defenders
   auto = true, first_s = 600, interval_s = { 900, 1500 }, max_active = 2,
   wing_delay_s = 45,
@@ -50,16 +50,20 @@ local DEFAULTS = {
   -- Voices on Guard: with the DCS-ATC script in the mission the probes answer a fighter that
   -- hails them on 243.0 and take his orders by personality (see "voices" below).
   voice = true, voice_order_credit_s = 30, voice_lines = {},
-  template_prefix = "DAWS", lane_prefix = "DAWS LANE", border_prefix = "DAWS BORDER",
+  template_prefix = "DAWG", lane_prefix = "DAWG LANE", border_prefix = "DAWG BORDER",
   weights = { book = 45, showboat = 30, hothead = 15, tester = 10 },
-  -- Mission Editor flags (named flags; false = off). DAWS counts these up when they happen:
-  event_flags = { LAUNCH = "DAWS_LAUNCHED", PROBE = "DAWS_PROBE", INTERCEPT = "DAWS_INTERCEPT",
-                  SHOW_START = "DAWS_SHOW", FUEL_DUMP = "DAWS_FUEL_DUMP", ESCORTED_OUT = "DAWS_ESCORTED_OUT",
-                  WITHDREW = "DAWS_WITHDREW", UNANSWERED = "DAWS_UNANSWERED", TURNBACK = "DAWS_TURNBACK",
-                  FIRED_ON = "DAWS_FIRED_ON", SHOW_ABORT = "DAWS_SHOW_ABORT", LOST = "DAWS_LOST" },
-  -- ...and watches these: set one > 0 to launch (DAWS sets it back to 0). The value picks the pilot:
+  -- Mission Editor flags (named flags; false = off). DAWG counts these up when they happen:
+  event_flags = { LAUNCH = "DAWG_LAUNCHED", PROBE = "DAWG_PROBE", INTERCEPT = "DAWG_INTERCEPT",
+                  SHOW_START = "DAWG_SHOW", FUEL_DUMP = "DAWG_FUEL_DUMP", ESCORTED_OUT = "DAWG_ESCORTED_OUT",
+                  WITHDREW = "DAWG_WITHDREW", UNANSWERED = "DAWG_UNANSWERED", TURNBACK = "DAWG_TURNBACK",
+                  FIRED_ON = "DAWG_FIRED_ON", SHOW_ABORT = "DAWG_SHOW_ABORT", LOST = "DAWG_LOST" },
+  -- ...and watches these: set one > 0 to launch (DAWG sets it back to 0). The value picks the pilot:
   -- 1 = from the weights, 2 = book, 3 = showboat, 4 = hothead, 5 = tester, 6+ = your own, in order.
-  launch_flag = "DAWS_LAUNCH", lane_flag_prefix = "DAWS_LAUNCH_", pause_flag = "DAWS_PAUSE",
+  launch_flag = "DAWG_LAUNCH", lane_flag_prefix = "DAWG_LAUNCH_", pause_flag = "DAWG_PAUSE",
+  -- The old name. With this on, groups and zones named "DAWS ...", the DAWS_LAUNCH / DAWS_PAUSE
+  -- flags, a DAWS_BORDERS_<MAP> borders file and DAWS_CONFIG all still work, and every event
+  -- counter is also written to its DAWS_ twin. Set false once nothing uses the old name.
+  legacy_names = true,
 }
 for k, v in pairs(DEFAULTS) do if C[k] == nil then C[k] = v end end
 
@@ -67,8 +71,14 @@ local NM = 1852
 local SIDE = coalition.side[string.upper(C.side)]
 local FOE = (SIDE == coalition.side.RED) and coalition.side.BLUE or coalition.side.RED
 local SIDE_NAME = string.lower(C.side)
-DAWS = { version = VERSION, sorties = {}, lanes = {}, templates = {}, paused = not C.auto, cfg = C,
+DAWG = { version = VERSION, sorties = {}, lanes = {}, templates = {}, paused = not C.auto, cfg = C,
          pauseFlagWas = false }             -- the pause flag acts on CHANGES only (off at start = no change)
+DAWS = DAWG                                 -- the old name, for scripts that still look for it (the DCS-ATC's Guard handshake)
+-- An old-name twin of a DAWG_ flag or prefix (nil when legacy names are off or it has none).
+local function legacyName(s)
+  if C.legacy_names == false or type(s) ~= "string" or s:sub(1, 4):upper() ~= "DAWG" then return nil end
+  return "DAWS" .. s:sub(5)
+end
 
 do  -- randomness. DCS strips math.randomseed (and os) from mission scripts, so
     -- burn a varying number of draws instead: a fresh table's address differs per run
@@ -81,24 +91,26 @@ end
 -- ============================================================ utilities
 local CUR                                   -- the sortie being processed: its tag prefixes every call
 local function log(...)
-  local p = { "DAWS", string.format("%d", timer.getTime()) }
+  local p = { "DAWG", string.format("%d", timer.getTime()) }
   for _, v in ipairs({ ... }) do p[#p + 1] = tostring(v) end
   env.info(table.concat(p, "|"))
-  if DAWS.onEvent then pcall(DAWS.onEvent, ...) end
+  if DAWG.onEvent then pcall(DAWG.onEvent, ...) end
   local f = C.event_flags and C.event_flags[(...)]
   if f then pcall(function() trigger.action.setUserFlag(f, (trigger.misc.getUserFlag(f) or 0) + 1) end) end
+  local f2 = legacyName(f)
+  if f2 then pcall(function() trigger.action.setUserFlag(f2, (trigger.misc.getUserFlag(f2) or 0) + 1) end) end
 end
 local function tagged(text) return (CUR and CUR.tag) and ("[" .. CUR.tag .. "] " .. text) or text end
 local function sayAll(text, t)
   text = tagged(text)
-  env.info("[DAWS] " .. text:gsub("\n", " | "))
+  env.info("[DAWG] " .. text:gsub("\n", " | "))
   if not C.messages then return end
   if C.msg_all then trigger.action.outText(text, t or 12)
   else trigger.action.outTextForCoalition(FOE, text, t or 12) end
 end
 local function sayGroup(g, text, t)
   text = tagged(text)
-  env.info("[DAWS] >" .. tostring(g and g:getName()) .. ": " .. text)
+  env.info("[DAWG] >" .. tostring(g and g:getName()) .. ": " .. text)
   if not C.messages then return end
   if C.msg_all then
     trigger.action.outText((g and (g:getName() .. ": ") or "") .. text, t or 10)
@@ -164,25 +176,32 @@ local function addPoly(name, pts, raw)
   end
   if #P.pts >= 3 then POLYS[#POLYS + 1] = P end
 end
-DAWS.borderNm = borderNm
-DAWS.polys = POLYS
+DAWG.borderNm = borderNm
+DAWG.polys = POLYS
 
 local function startsWith(s, p) return type(s) == "string" and s:sub(1, #p):upper() == p:upper() end
+-- A group or zone name carrying the prefix, under the new name or (legacy_names) the old one.
+local function hasPrefix(s, p)
+  if startsWith(s, p) then return true end
+  local old = legacyName(p)
+  return old ~= nil and startsWith(s, old)
+end
 
 if C.border then addPoly("border", C.border) end
 for _, b in ipairs(C.borders or {}) do addPoly(b.name or "border", b.points) end
 -- built-in real borders for this map, when the borders file is loaded and no config borders were given
 if not C.border and not C.borders then
   local theatre = env.mission and env.mission.theatre
-  local builtin = theatre and _G["DAWS_BORDERS_" .. string.upper(theatre)]
+  local builtin = theatre and (_G["DAWG_BORDERS_" .. string.upper(theatre)]
+                              or (C.legacy_names ~= false and _G["DAWS_BORDERS_" .. string.upper(theatre)]))
   if builtin then
     for _, b in ipairs(builtin) do addPoly(b.name, b.points) end
     log("BORDERS", "built-in " .. theatre, #builtin .. " polygons")
   end
 end
--- Mission Editor zones named "DAWS BORDER ..." (polygon zones, or circles as 24-gons)
+-- Mission Editor zones named "DAWG BORDER ..." (polygon zones, or circles as 24-gons)
 for _, z in ipairs((env.mission and env.mission.triggers and env.mission.triggers.zones) or {}) do
-  if startsWith(z.name, C.border_prefix) then
+  if hasPrefix(z.name, C.border_prefix) then
     local pts = {}
     if z.verticies and #z.verticies >= 3 then
       for _, v in ipairs(z.verticies) do pts[#pts + 1] = { x = v.x, z = v.y } end
@@ -447,7 +466,7 @@ local function spawn(tdef, tag, route)
   if not src then log("NO_TEMPLATE", tdef.template) return nil end
   serial = serial + 1
   local g = deepcopy(src)
-  g.name = string.format("DAWS-%d %s %s", serial, tdef.label, tag)
+  g.name = string.format("DAWG-%d %s %s", serial, tdef.label, tag)
   g.groupId, g.lateActivation, g.start_time, g.uncontrolled = nil, nil, 0, false
   g.units = { g.units[1] }                     -- single-ship groups: lead and wing fly as separate groups
   g.units[1].unitId = nil
@@ -523,7 +542,7 @@ do  -- refuse any stunt that comes inside min_sep anywhere along its path
   end
   for _, name in ipairs(bad) do log("STUNT_REJECTED", name, "inside min_sep " .. C.min_sep_m .. " m"); STUNTS[name] = nil end
 end
-DAWS.stunts = STUNTS
+DAWG.stunts = STUNTS
 
 -- ======================================================== personalities
 -- depth        how many steps closer to the border he starts (each step_nm)
@@ -550,7 +569,7 @@ for k, v in pairs(C.personalities or {}) do
                          obeys = 1 }
   for kk, vv in pairs(v) do PERS[k][kk] = vv end
 end
-DAWS.personalities = PERS
+DAWG.personalities = PERS
 local PERS_ORDER = { "book", "showboat", "hothead", "tester" }       -- flag values 2..5
 do  -- your own personalities follow, ALPHABETICALLY (flag values 6, 7, ...)
   local custom = {}
@@ -580,7 +599,7 @@ local function pickPersonality(tdef, lane)
 end
 
 -- ======================================== templates + lanes from config / ME
-local TDEF = DAWS.templates
+local TDEF = DAWG.templates
 local function nameTags(name)
   local t = {}
   for tag in name:gmatch("#(%w+)") do
@@ -594,10 +613,10 @@ local function nameTags(name)
 end
 if C.templates then
   for _, t in ipairs(C.templates) do if completeTdef(t) then TDEF[#TDEF + 1] = t; TDEF[t.template] = t else log("NO_TEMPLATE", t.template) end end
-else  -- discover: late-activated planes of the probing side named "DAWS ..." (not "DAWS LANE ...")
+else  -- discover: late-activated planes of the probing side named "DAWG ..." (not "DAWG LANE ...")
   for _, c in ipairs(((env.mission.coalition or {})[SIDE_NAME] or {}).country or {}) do
     for _, g in ipairs((c.plane and c.plane.group) or {}) do
-      if g.lateActivation and startsWith(g.name, C.template_prefix) and not startsWith(g.name, C.lane_prefix) then
+      if g.lateActivation and hasPrefix(g.name, C.template_prefix) and not hasPrefix(g.name, C.lane_prefix) then
         local t = nameTags(g.name)
         t.template = g.name
         local p1 = g.route and g.route.points and g.route.points[1]
@@ -666,21 +685,21 @@ local function addLane(L)
     if #pool == 0 then for _, t in ipairs(TDEF) do pool[#pool + 1] = t.template end end
     L.templates = pool
   end
-  DAWS.lanes[#DAWS.lanes + 1] = lane
-  DAWS.lanes[L.name] = lane
+  DAWG.lanes[#DAWG.lanes + 1] = lane
+  DAWG.lanes[L.name] = lane
 end
 if C.lanes then
   for _, L in ipairs(C.lanes) do addLane(L) end
-else  -- discover: late-activated groups named "DAWS LANE <name>" - waypoints = the leg
+else  -- discover: late-activated groups named "DAWG LANE <name>" - waypoints = the leg
   for _, side in pairs(env.mission.coalition or {}) do
     for _, c in ipairs(side.country or {}) do
       for _, cat in ipairs({ "plane", "helicopter", "vehicle", "ship" }) do
         for _, g in ipairs((c[cat] and c[cat].group) or {}) do
-          if startsWith(g.name, C.lane_prefix) then
+          if hasPrefix(g.name, C.lane_prefix) then
             local name = g.name:sub(#C.lane_prefix + 1):gsub("#.*$", ""):gsub("^%s+", ""):gsub("%s+$", "")
             local leg = {}
             for _, p in ipairs((g.route and g.route.points) or {}) do leg[#leg + 1] = { x = p.x, z = p.y } end
-            local L = { name = (name ~= "" and name or ("LANE " .. (#DAWS.lanes + 1))):upper(), leg = leg }
+            local L = { name = (name ~= "" and name or ("LANE " .. (#DAWG.lanes + 1))):upper(), leg = leg }
             for tag in g.name:gmatch("#(%w+)") do
               tag = tag:lower()
               if PERS[tag] then L.personality = tag elseif tag == "land" then L.land = true elseif tag == "sea" then L.land = false end
@@ -708,11 +727,11 @@ local function legAt(lane, depth)
   end
   return out
 end
-DAWS.legAt = legAt
+DAWG.legAt = legAt
 
 -- ============================================================== sorties
 local function lane(s, key) local v = s.lane.def[key]; if v == nil then v = C[key] end return v end
-local S = DAWS.sorties
+local S = DAWG.sorties
 local nextPers                      -- GM override for the next launch
 
 local function sortieUnits(s)
@@ -803,13 +822,13 @@ local function newSortie(lane, tdef, pers, tag)
   return s
 end
 
--- DAWS.launch("LANE", "TEMPLATE", "personality") or DAWS.launch{ lane=, template=, personality=, tag= }
+-- DAWG.launch("LANE", "TEMPLATE", "personality") or DAWG.launch{ lane=, template=, personality=, tag= }
 -- every field optional: random lane, a template from that lane's pool, a personality from the weights
-function DAWS.launch(a, b, c)
+function DAWG.launch(a, b, c)
   local o = type(a) == "table" and a or { lane = a, template = b, personality = c }
-  local ln = o.lane and DAWS.lanes[string.upper(o.lane)] or o.lane and DAWS.lanes[o.lane]
+  local ln = o.lane and DAWG.lanes[string.upper(o.lane)] or o.lane and DAWG.lanes[o.lane]
   if o.lane and not ln then log("NO_LANE", tostring(o.lane)) return nil end
-  ln = ln or DAWS.lanes[math.random(#DAWS.lanes)]
+  ln = ln or DAWG.lanes[math.random(#DAWG.lanes)]
   if not ln then log("NO_LANE", "none defined") return nil end
   local pool = ln.def.templates or {}
   local tname = o.template or pool[math.random(math.max(1, #pool))]
@@ -1170,10 +1189,10 @@ timer.scheduleFunction(function(_, t)
     for _, e in ipairs(C.schedule or {}) do
       if e.next and now >= e.next then
         e.next = e.every and (now + rnd(e.every)) or nil
-        DAWS.launch{ lane = e.lane, template = e.template, personality = e.personality, tag = e.tag }
+        DAWG.launch{ lane = e.lane, template = e.template, personality = e.personality, tag = e.tag }
       end
     end
-    -- Mission Editor flags: DAWS_LAUNCH, DAWS_LAUNCH_<LANE>, and cfg.launch_flags = { [flag] = { lane=, template=, personality= } }
+    -- Mission Editor flags: DAWG_LAUNCH, DAWG_LAUNCH_<LANE>, and cfg.launch_flags = { [flag] = { lane=, template=, personality= } }
     local function flagPers(v) return (v >= 2) and PERS_ORDER[v - 1] or nil end
     local function watch(f, o)
       local v = tonumber(trigger.misc.getUserFlag(f)) or 0
@@ -1182,26 +1201,33 @@ timer.scheduleFunction(function(_, t)
         local spec = {}
         for k, x in pairs(o) do spec[k] = x end
         spec.personality = spec.personality or flagPers(math.floor(v))
-        local s = DAWS.launch(spec)
+        local s = DAWG.launch(spec)
         log("FLAG_LAUNCH", tostring(f), tostring(v), s and s.name or "failed")
       end
     end
-    if C.launch_flag then watch(C.launch_flag, {}) end
+    local function watchBoth(f, o)                -- the flag, and its old-name twin
+      watch(f, o)
+      local old = legacyName(f)
+      if old then watch(old, o) end
+    end
+    if C.launch_flag then watchBoth(C.launch_flag, {}) end
     if C.lane_flag_prefix then
-      for _, ln in ipairs(DAWS.lanes) do watch(C.lane_flag_prefix .. ln.name:gsub("%s+", "_"), { lane = ln.name }) end
+      for _, ln in ipairs(DAWG.lanes) do watchBoth(C.lane_flag_prefix .. ln.name:gsub("%s+", "_"), { lane = ln.name }) end
     end
     for f, o in pairs(C.launch_flags or {}) do watch(f, type(o) == "table" and o or {}) end
     if C.pause_flag then                         -- flag on = auto launches paused, off = resumed (edges only)
+      local old = legacyName(C.pause_flag)
       local f = (trigger.misc.getUserFlag(C.pause_flag) or 0) > 0
-      if f ~= DAWS.pauseFlagWas then DAWS.pauseFlagWas = f; DAWS.pause(f) end
+        or (old ~= nil and (trigger.misc.getUserFlag(old) or 0) > 0)
+      if f ~= DAWG.pauseFlagWas then DAWG.pauseFlagWas = f; DAWG.pause(f) end
     end
-    if not DAWS.paused and active < C.max_active and now - lastLaunch >= nextGap and #DAWS.lanes > 0 then
+    if not DAWG.paused and active < C.max_active and now - lastLaunch >= nextGap and #DAWG.lanes > 0 then
       lastLaunch, nextGap = now, rnd(C.interval_s)
-      DAWS.launch{ personality = nextPers }
+      DAWG.launch{ personality = nextPers }
       nextPers = nil
     end
   end)
-  if not ok then env.error("[DAWS] tick error: " .. tostring(err)) end
+  if not ok then env.error("[DAWG] tick error: " .. tostring(err)) end
   return t + 1
 end, nil, timer.getTime() + 2)
 
@@ -1235,7 +1261,7 @@ function H:onEvent(e)
           local lu = lead(s.lead)
           if lu and d3(lu:getPoint(), u:getPoint()) < 3000 then
             log("SHOW_MISHAP", s.name, who(u))
-            env.warning("[DAWS] defender crashed within 3 km of a show - review min_sep_m / abort_sep_m")
+            env.warning("[DAWG] defender crashed within 3 km of a show - review min_sep_m / abort_sep_m")
           end
         end
       end
@@ -1245,8 +1271,8 @@ end
 world.addEventHandler(H)
 
 -- =============================================================== status
-function DAWS.status()
-  local L = { "DAWS v" .. VERSION .. " - probes" .. (DAWS.paused and " (auto launches PAUSED)" or "") }
+function DAWG.status()
+  local L = { "DAWG v" .. VERSION .. " - probes" .. (DAWG.paused and " (auto launches PAUSED)" or "") }
   local n = 0
   for _, s in ipairs(S) do
     if s.state ~= "DONE" or timer.getTime() - s.t0 < 3600 then
@@ -1261,35 +1287,35 @@ function DAWS.status()
   end
   if n == 0 then L[#L + 1] = "  nothing out" end
   local lb = {}
-  for _, ln in ipairs(DAWS.lanes) do lb[#lb + 1] = ln.name .. " +" .. ln.bias end
+  for _, ln in ipairs(DAWG.lanes) do lb[#lb + 1] = ln.name .. " +" .. ln.bias end
   L[#L + 1] = "  lane pressure: " .. table.concat(lb, ", ")
   sayStatus(table.concat(L, "\n"))
 end
-function DAWS.pause(p) DAWS.paused = p; log("PAUSE", tostring(p)) end
-function DAWS.setPersonality(k) if PERS[k] then nextPers = k; return true end end
-function DAWS.addPersonality(k, def) PERS[k] = def; PERS_ORDER[#PERS_ORDER + 1] = k end
+function DAWG.pause(p) DAWG.paused = p; log("PAUSE", tostring(p)) end
+function DAWG.setPersonality(k) if PERS[k] then nextPers = k; return true end end
+function DAWG.addPersonality(k, def) PERS[k] = def; PERS_ORDER[#PERS_ORDER + 1] = k end
 
 if C.menu then
   local top = missionCommands.addSubMenuForCoalition(FOE, C.menu_name)
-  missionCommands.addCommandForCoalition(FOE, "Status", top, DAWS.status)
+  missionCommands.addCommandForCoalition(FOE, "Status", top, DAWG.status)
   local ml = missionCommands.addSubMenuForCoalition(FOE, "Launch a probe now", top)
-  for _, ln in ipairs(DAWS.lanes) do
+  for _, ln in ipairs(DAWG.lanes) do
     missionCommands.addCommandForCoalition(FOE, ln.name, ml, function()
-      local s = DAWS.launch{ lane = ln.name, personality = nextPers }
+      local s = DAWG.launch{ lane = ln.name, personality = nextPers }
       nextPers = nil
-      trigger.action.outTextForCoalition(FOE, s and ("DAWS: launched " .. s.label .. " (" .. s.pers .. ") on " .. ln.name) or "DAWS: launch failed - see dcs.log", 8)
+      trigger.action.outTextForCoalition(FOE, s and ("DAWG: launched " .. s.label .. " (" .. s.pers .. ") on " .. ln.name) or "DAWG: launch failed - see dcs.log", 8)
     end)
   end
   local mp = missionCommands.addSubMenuForCoalition(FOE, "Next probe's personality", top)
   for _, k in ipairs(PERS_ORDER) do
     missionCommands.addCommandForCoalition(FOE, PERS[k].label or k, mp, function()
       nextPers = k
-      trigger.action.outTextForCoalition(FOE, "DAWS: next probe will be a " .. (PERS[k].label or k), 6)
+      trigger.action.outTextForCoalition(FOE, "DAWG: next probe will be a " .. (PERS[k].label or k), 6)
     end)
   end
   missionCommands.addCommandForCoalition(FOE, "Pause / resume auto launches", top, function()
-    DAWS.pause(not DAWS.paused)
-    trigger.action.outTextForCoalition(FOE, "DAWS: auto launches " .. (DAWS.paused and "PAUSED" or "RESUMED"), 6)
+    DAWG.pause(not DAWG.paused)
+    trigger.action.outTextForCoalition(FOE, "DAWG: auto launches " .. (DAWG.paused and "PAUSED" or "RESUMED"), 6)
   end)
 end
 
@@ -1298,8 +1324,8 @@ end
 -- ev = { op = "hail" | "turn" | "leave" | "follow" | "land", arg, unit, name, flightName, ... }.
 -- nil = not one of ours (the ATC answers itself); { text = ... } = what the pilot says
 -- (the ATC speaks it through the probe's radio, and tasks nothing - his personality
--- decides, DAWS flies him). Talking to a stubborn pilot counts toward walking him out.
-function DAWS.onGuard(ev)
+-- decides, DAWG flies him). Talking to a stubborn pilot counts toward walking him out.
+function DAWG.onGuard(ev)
   local s = ev and ev.unit and sortieOf(ev.unit)
   if not s or s.state == "DONE" then return nil end
   CUR = s
@@ -1340,12 +1366,12 @@ function DAWS.onGuard(ev)
   return { text = text }
 end
 if C.voice and type(ATC) == "table" and ATC.Guard and ATC.Guard.register then
-  ATC.Guard.register(DAWS.onGuard)
+  ATC.Guard.register(DAWG.onGuard)
   log("VOICE", "on: the probes answer on Guard through the DCS-ATC")
 end
 
 if #POLYS == 0 then log("WARN", "no borders defined - probes have nothing to stay out of") end
-if #DAWS.lanes == 0 then log("WARN", "no lanes - add DAWS LANE groups or cfg.lanes") end
+if #DAWG.lanes == 0 then log("WARN", "no lanes - add DAWG LANE groups or cfg.lanes") end
 if #TDEF == 0 then log("WARN", "no templates - add late-activated '" .. C.template_prefix .. " ...' groups or cfg.templates") end
-log("LOADED", VERSION, #DAWS.lanes .. " lanes", #TDEF .. " templates", #POLYS .. " border polygons", "formation " .. C.formation)
-env.info("[DAWS] loaded v" .. VERSION)
+log("LOADED", VERSION, #DAWG.lanes .. " lanes", #TDEF .. " templates", #POLYS .. " border polygons", "formation " .. C.formation)
+env.info("[DAWG] loaded v" .. VERSION)

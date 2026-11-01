@@ -1,14 +1,14 @@
--- DAWS offline scenario tests. Usage: luae run_tests.lua <dir-of-DAWS> <scenario>
+-- DAWG offline scenario tests. Usage: luae run_tests.lua <dir-of-DAWG> <scenario>
 local DIR, SC = arg[1], arg[2]
 dofile(DIR .. "/tests/mock_dcs.lua")
 local M = MOCK
 dofile(DIR .. "/tests/fixture_config.lua")
-local C = DAWS_CONFIG
+local C = DAWG_CONFIG
 C.first_s, C.auto = 1e9, false                    -- tests launch by hand
 -- turnback: no show (a show can drag him past release_nm), complies at once, always turns back
 if SC == "turnback" then C.personalities = { hothead = { turnback = 1.0, stunts = { 0, 0 } } } end
-M.addTemplate("DAWS_SU27_SUKHUMI", 42.86, 41.13, 21)
-M.addTemplate("DAWS_MIG31_MOZDOK", 43.79, 44.61, 28)
+M.addTemplate("DAWG_SU27_SUKHUMI", 42.86, 41.13, 21)
+M.addTemplate("DAWG_MIG31_MOZDOK", 43.79, 44.61, 28)
 if SC == "guard" then   -- a stand-in for the DCS-ATC's Guard: records what the probes say
   GUARD_SAID, GUARD_REG = {}, nil
   C.voice_lines = { land = "Nyet, {you}." }       -- a mission overriding one line
@@ -17,7 +17,11 @@ if SC == "guard" then   -- a stand-in for the DCS-ATC's Guard: records what the 
                     say = function(u, text, to) GUARD_SAID[#GUARD_SAID + 1] = text; return true end,
                     words = function(u) return { you = "American aircraft", who = "Soviet Air Force", type = "Su twenty seven" } end } }
 end
-dofile(DIR .. "/DAWS.lua")
+if SC == "legacy" then   -- a mission written for the old name: the config global was DAWS_CONFIG
+  DAWS_CONFIG = DAWG_CONFIG
+  DAWG_CONFIG = nil
+end
+dofile(DIR .. "/DAWG.lua")
 
 local fails = 0
 local function check(cond, what)
@@ -36,7 +40,7 @@ local function blue(lat, lon)
     attrs = { ["Multirole fighters"] = true } })
   g.u.v = { x = 0, z = 230 }
   g.script = function(u, t, dt)
-    local s = DAWS.sorties[1]
+    local s = DAWG.sorties[1]
     local bu = s and Group.getByName(s.lead) and Group.getByName(s.lead):getUnit()
     if B.mode == "cap" then
       u.v = { x = 0, z = 0.01 }
@@ -81,7 +85,7 @@ end
 local minSep = 1e9
 local function watchSep(bg)
   return function()
-    local s = DAWS.sorties[1]
+    local s = DAWG.sorties[1]
     if s and s.state == "SHOW" and s.show and s.show.joined then
       local u = Group.getByName(s.lead) and Group.getByName(s.lead):getUnit()
       if u then
@@ -94,21 +98,21 @@ end
 
 print("== " .. SC)
 -- static checks every run
-check(DAWS.version ~= nil and #DAWS.lanes == 3, "loaded with 3 lanes")
+check(DAWG.version ~= nil and #DAWG.lanes == 3, "loaded with 3 lanes")
 local nst = 0
-for _ in pairs(DAWS.stunts) do nst = nst + 1 end
+for _ in pairs(DAWG.stunts) do nst = nst + 1 end
 check(nst == 7 and not has("STUNT_REJECTED"), "all 7 stunts pass the min_sep path check")
-for _, lane in ipairs(DAWS.lanes) do
+for _, lane in ipairs(DAWG.lanes) do
   for d = 0, C.max_depth do
     local worst = 1e9
-    for _, p in ipairs(DAWS.legAt(lane, d)) do worst = math.min(worst, DAWS.borderNm(p)) end
+    for _, p in ipairs(DAWG.legAt(lane, d)) do worst = math.min(worst, DAWG.borderNm(p)) end
     check(worst >= C.floor_nm - 0.01, string.format("%s depth %d: closest leg point %.1f NM >= floor", lane.name, d, worst))
   end
 end
 check(not has("LANE_WARN"), "no lane leg starts inside the floor")
 
 if SC == "unanswered" then
-  local s = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "book")
+  local s = DAWG.launch("COAST", "DAWG_SU27_SUKHUMI", "book")
   check(s ~= nil, "launched")
   run(4 * 3600)
   check(has("|AIRBORNE|"), "airborne")
@@ -116,12 +120,12 @@ if SC == "unanswered" then
   check(#M.grep("|UNANSWERED|") >= 2, "unanswered laps logged (" .. #M.grep("|UNANSWERED|") .. ")")
   check(s.depth > 0, "went deeper (depth " .. s.depth .. ")")
   check(has("probe complete"), "complied after max laps")
-  check(DAWS.lanes.COAST.bias == 1, "lane remembers: next probe starts deeper")
+  check(DAWG.lanes.COAST.bias == 1, "lane remembers: next probe starts deeper")
   check(has("|END|"), "landed and cleaned up")
 elseif SC == "book_escort" then
   local bg = blue(42.30, 41.40)
   B.react_m = 60000
-  local s = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "book")
+  local s = DAWG.launch("COAST", "DAWG_SU27_SUKHUMI", "book")
   run(4 * 3600)
   check(has("|RESPONSE|"), "response time logged")
   check(has("|INTERCEPT|"), "intercept logged")
@@ -133,7 +137,7 @@ elseif SC == "book_escort" then
 elseif SC == "hothead" then
   local bg = blue(42.30, 41.40)
   B.react_m = 60000
-  local s = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "hothead")
+  local s = DAWG.launch("COAST", "DAWG_SU27_SUKHUMI", "hothead")
   local switched = false
   run(4 * 3600, function()
     watchSep(bg)()
@@ -155,7 +159,7 @@ elseif SC == "hothead" then
 elseif SC == "abort" then
   local bg = blue(42.30, 41.40)
   B.react_m = 60000
-  local s = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "hothead")
+  local s = DAWG.launch("COAST", "DAWG_SU27_SUKHUMI", "hothead")
   run(4 * 3600, function()
     if s.state == "SHOW" and B.mode ~= "ram" and B.mode ~= "straight" then B.mode = "straight"; B.t = M.t end
     if B.mode == "straight" and s.show and s.show.joined and M.t - B.t > 60 then B.mode = "ram" end
@@ -166,7 +170,7 @@ elseif SC == "abort" then
 elseif SC == "hardturn" then
   local bg = blue(42.30, 41.40)
   B.react_m = 60000
-  local s = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "showboat")
+  local s = DAWG.launch("COAST", "DAWG_SU27_SUKHUMI", "showboat")
   run(4 * 3600, function()
     if s.state == "SHOW" and not B.t then B.mode = "straight"; B.t = M.t end
     if B.t and M.t - B.t > 50 and M.t - B.t < 80 then B.mode = "hardturn" elseif B.t and B.mode == "hardturn" then B.mode = "straight"; B.h = nil end
@@ -176,7 +180,7 @@ elseif SC == "hardturn" then
 elseif SC == "turnback" then
   local bg = blue(42.30, 41.40)
   B.react_m = 60000
-  local s = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "hothead")
+  local s = DAWG.launch("COAST", "DAWG_SU27_SUKHUMI", "hothead")
   run(4 * 3600, function()
     if s.state == "SHOW" then B.mode = "straight" end
     if s.state == "STUBBORN" then B.mode = "escort" end
@@ -186,12 +190,12 @@ elseif SC == "turnback" then
 elseif SC == "airstart" then
   -- air-start template, no home field: must still finish (and free its max_active slot)
   local p = coord.LLtoLO(43.20, 40.20)
-  table.insert(env.mission.coalition.red.country[1].plane.group, { name = "DAWS_AIR_SU27", groupId = 9, lateActivation = true,
-    units = { { name = "DAWS_AIR_SU27-1", unitId = 9, type = "Su-27", x = p.x, y = p.z, payload = { pylons = {} } } },
+  table.insert(env.mission.coalition.red.country[1].plane.group, { name = "DAWG_AIR_SU27", groupId = 9, lateActivation = true,
+    units = { { name = "DAWG_AIR_SU27-1", unitId = 9, type = "Su-27", x = p.x, y = p.z, payload = { pylons = {} } } },
     route = { points = { { x = p.x, y = p.z, alt = 7000, speed = 230, type = "Turning Point", action = "Turning Point" } } } })
-  DAWS.templates[#DAWS.templates + 1] = { template = "DAWS_AIR_SU27", label = "Flanker", flight = 1, alt = 7000, speed = 230 }
-  DAWS.templates["DAWS_AIR_SU27"] = DAWS.templates[#DAWS.templates]
-  local s = DAWS.launch("COAST", "DAWS_AIR_SU27", "book")
+  DAWG.templates[#DAWG.templates + 1] = { template = "DAWG_AIR_SU27", label = "Flanker", flight = 1, alt = 7000, speed = 230 }
+  DAWG.templates["DAWG_AIR_SU27"] = DAWG.templates[#DAWG.templates]
+  local s = DAWG.launch("COAST", "DAWG_AIR_SU27", "book")
   run(4 * 3600)
   check(s ~= nil and s.homeAb == nil, "air start with no home field launched")
   check(has("probe complete"), "probed, went home")
@@ -200,24 +204,24 @@ elseif SC == "airstart" then
 elseif SC == "mig31" then
   local bg = blue(43.00, 43.80)
   B.react_m = 80000
-  local s = DAWS.launch("RIDGE EAST", "DAWS_MIG31_MOZDOK")
+  local s = DAWG.launch("RIDGE EAST", "DAWG_MIG31_MOZDOK")
   run(4 * 3600)
   check(s.pers == "book", "Foxhound forced by-the-book")
   check(has("|INTERCEPT|") and not has("SHOW_START"), "intercepted, no show")
 elseif SC == "guard" then
   -- Voices on Guard: the DCS-ATC hands us a fighter's hail and orders; the personality decides.
-  check(GUARD_REG == DAWS.onGuard, "DAWS registered its Guard handler with the ATC")
-  check(DAWS.onGuard(nil) == nil and DAWS.onGuard({ op = "hail" }) == nil, "a call with no aircraft of ours is not answered")
+  check(GUARD_REG == DAWG.onGuard, "DAWG registered its Guard handler with the ATC")
+  check(DAWG.onGuard(nil) == nil and DAWG.onGuard({ op = "hail" }) == nil, "a call with no aircraft of ours is not answered")
   local bg = blue(42.30, 41.40)
   B.react_m = 60000
   local said = {}
   local function order(s, op, arg)
-    local r = DAWS.onGuard({ op = op, arg = arg, unit = Group.getByName(s.lead):getUnit(1), flightName = "Camelot 1-1" })
+    local r = DAWG.onGuard({ op = op, arg = arg, unit = Group.getByName(s.lead):getUnit(1), flightName = "Camelot 1-1" })
     said[#said + 1] = r and r.text or "<nil>"
     return r
   end
   -- hothead: answers the hail in character, refuses twice, gives in on the third order
-  local s = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "hothead")
+  local s = DAWG.launch("COAST", "DAWG_SU27_SUKHUMI", "hothead")
   local step, t0 = 0, 0
   run(4 * 3600, function()
     if s.state == "SHOW" then B.mode = "straight" end
@@ -244,7 +248,7 @@ elseif SC == "guard" then
   -- by-the-book: complies on the first order; "land" is refused but still counts
   B.mode = "cap"
   said = {}
-  local s2 = DAWS.launch("COAST", "DAWS_SU27_SUKHUMI", "book")
+  local s2 = DAWG.launch("COAST", "DAWG_SU27_SUKHUMI", "book")
   step, t0 = 0, 0
   run(4 * 3600, function()
     if s2.state == "COMPLY" then B.mode = "escort" end
@@ -256,8 +260,22 @@ elseif SC == "guard" then
   check(said[2] == "Nyet, American aircraft.", "a mission's own line for 'land' was used: " .. tostring(said[2]))
   check((said[3] or ""):find("turning for home", 1, true) ~= nil, "book turned for home on the first real order: " .. tostring(said[3]))
   check(has("|COMPLY|" .. s2.name) and has("|END|" .. s2.name), "book complied and finished")
+elseif SC == "legacy" then
+  -- the old name still works: DAWS_CONFIG, the DAWS global, the DAWS_ flags, counters under both names
+  check(DAWS == DAWG and DAWG.cfg == DAWS_CONFIG, "DAWS_CONFIG was read and DAWS is an alias of DAWG")
+  M.flags["DAWS_LAUNCH"] = 2                        -- the old launch flag, 2 = by-the-book
+  run(5)
+  check(M.flags["DAWS_LAUNCH"] == 0 and has("|FLAG_LAUNCH|DAWS_LAUNCH|2|"), "the old launch flag launched a probe and was reset")
+  check((M.flags["DAWG_LAUNCHED"] or 0) >= 1 and (M.flags["DAWS_LAUNCHED"] or 0) >= 1, "the counter was written under both names")
+  M.flags["DAWS_PAUSE"] = 1
+  run(5)
+  check(DAWG.paused == true and has("|PAUSE|true"), "the old pause flag pauses")
+  M.flags["DAWS_PAUSE"] = 0
+  run(5)
+  check(DAWG.paused == false, "and resumes")
+  check(#M.grep("DAWG|") > 0 and #M.grep("DAWS|") == 0, "log lines carry the new name only")
 end
 
 for _, l in ipairs(M.logs) do if l:find("ERR", 1, true) then print("  " .. l); fails = fails + 1 end end
 print(fails == 0 and "PASS" or ("FAILED " .. fails))
-if M.verbose or fails > 0 or arg[3] == "v" then for _, l in ipairs(M.grep("DAWS|")) do print("    " .. l) end end
+if M.verbose or fails > 0 or arg[3] == "v" then for _, l in ipairs(M.grep("DAWG|")) do print("    " .. l) end end

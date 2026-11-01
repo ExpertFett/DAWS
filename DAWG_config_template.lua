@@ -1,10 +1,10 @@
 -- ============================================================================
--- DAWS config template (DAWS v1.0.0-beta).  OPTIONAL - DAWS runs without it.
+-- DAWG config template (DAWG v1.0.0-beta).  OPTIONAL - DAWG runs without it.
 -- Copy this file, uncomment what you want to change, and load it with DO SCRIPT
--- FILE *before* DAWS.lua. Everything left commented keeps the default shown.
+-- FILE *before* DAWG.lua. Everything left commented keeps the default shown.
 -- Points are { lat, lon } in degrees (or { x = , z = } in DCS metres).
 -- ============================================================================
-DAWS_CONFIG = {
+DAWG_CONFIG = {
 
   -- ---------------------------------------------------------------- general
   -- side = "red",                 -- the probing side ("red" or "blue")
@@ -13,11 +13,11 @@ DAWS_CONFIG = {
   -- msg_all = false,              -- true = calls to EVERYONE (spectator / demo missions)
   -- group_msgs_to_all = false,    -- true = close-pass calls to the whole defending side, not just the target
   -- menu = true,                  -- F10 GM menu for the defending side
-  -- menu_name = "DAWS (GM)",
+  -- menu_name = "DAWG (GM)",
 
   -- ------------------------------------------------------- automatic launches
   -- auto = true,                  -- false = only launches you ask for (schedule / flags / F10 / API)
-  -- first_s = 600,                -- first automatic probe, seconds after DAWS loads
+  -- first_s = 600,                -- first automatic probe, seconds after DAWG loads
   -- interval_s = { 900, 1500 },   -- then one every 15-25 min (random between the two)
   -- max_active = 2,               -- automatic probes out at once
 
@@ -42,8 +42,8 @@ DAWS_CONFIG = {
   -- (add one to weights = { ... } if it should come up at random)
 
   -- ---------------------------------------------------------------- borders
-  -- Leave both out to use the map's built-in real borders (load DAWS_borders_<map>.lua)
-  -- and/or Mission Editor polygon zones named "DAWS BORDER ...".
+  -- Leave both out to use the map's built-in real borders (load DAWG_borders_<map>.lua)
+  -- and/or Mission Editor polygon zones named "DAWG BORDER ...".
   -- border = { { 42.42, 41.28 }, { 42.39, 41.56 }, ... },          -- one no-go polygon
   -- borders = { { name = "Georgia", points = { ... } }, ... },     -- several
 
@@ -89,7 +89,7 @@ DAWS_CONFIG = {
   -- Built in: wing_look, close_wing, nose_cross, fuel_dump, belly_check, canopy_pass, sit_six
 
   -- ------------------------------------------------------------- templates
-  -- Leave out to use late-activated groups of the probing side named "DAWS ...".
+  -- Leave out to use late-activated groups of the probing side named "DAWG ...".
   -- templates = {
   --   { template = "Su-27 Sochi",            -- the late-activated group (single ship is fine)
   --     label = "Flanker",                   -- what the calls say (default: NATO name of the type)
@@ -104,7 +104,7 @@ DAWS_CONFIG = {
   -- },
 
   -- ----------------------------------------------------------------- lanes
-  -- Leave out to use late-activated groups named "DAWS LANE <name>" (waypoints = the leg).
+  -- Leave out to use late-activated groups named "DAWG LANE <name>" (waypoints = the leg).
   -- lanes = {
   --   { name = "GAGRA",
   --     leg = { { 43.11, 39.53 }, { 42.86, 39.98 }, { 42.61, 40.43 } },   -- parallel to the border, outside it
@@ -123,16 +123,18 @@ DAWS_CONFIG = {
   -- },
 
   -- --------------------------------------------- Mission Editor flags
-  -- DAWS watches:  DAWS_LAUNCH  (any lane)   DAWS_LAUNCH_<LANE>  (spaces -> _)   DAWS_PAUSE
+  -- DAWG watches:  DAWG_LAUNCH  (any lane)   DAWG_LAUNCH_<LANE>  (spaces -> _)   DAWG_PAUSE
   --   set > 0 to launch; the VALUE picks the pilot: 1 weights, 2 book, 3 showboat, 4 hothead, 5 tester
-  -- DAWS counts up (+1 each time):  DAWS_LAUNCHED DAWS_PROBE DAWS_INTERCEPT DAWS_SHOW DAWS_FUEL_DUMP
-  --   DAWS_ESCORTED_OUT DAWS_WITHDREW DAWS_UNANSWERED DAWS_TURNBACK DAWS_FIRED_ON DAWS_SHOW_ABORT DAWS_LOST
-  -- launch_flag = "DAWS_LAUNCH", lane_flag_prefix = "DAWS_LAUNCH_", pause_flag = "DAWS_PAUSE",
-  -- event_flags = { INTERCEPT = "DAWS_INTERCEPT", ... },      -- false = none
+  -- DAWG counts up (+1 each time):  DAWG_LAUNCHED DAWG_PROBE DAWG_INTERCEPT DAWG_SHOW DAWG_FUEL_DUMP
+  --   DAWG_ESCORTED_OUT DAWG_WITHDREW DAWG_UNANSWERED DAWG_TURNBACK DAWG_FIRED_ON DAWG_SHOW_ABORT DAWG_LOST
+  -- launch_flag = "DAWG_LAUNCH", lane_flag_prefix = "DAWG_LAUNCH_", pause_flag = "DAWG_PAUSE",
+  -- event_flags = { INTERCEPT = "DAWG_INTERCEPT", ... },      -- false = none
   -- launch_flags = { [100] = { lane = "GAGRA", personality = "hothead" } },   -- your own numbered flags
 
   -- ------------------------------------------------- naming (discovery)
-  -- template_prefix = "DAWS", lane_prefix = "DAWS LANE", border_prefix = "DAWS BORDER",
+  -- template_prefix = "DAWG", lane_prefix = "DAWG LANE", border_prefix = "DAWG BORDER",
+  -- legacy_names = true,          -- also accept the old name everywhere ("DAWS ..." groups, DAWS_LAUNCH,
+                                   -- DAWS_CONFIG, DAWS_BORDERS_<MAP>) and write the counters as DAWS_* too
 
   -- --------------------------------------------------------------- misc
   -- roe = 4,                      -- probing side's air ROE (4 = weapons hold, 3 = return fire)
